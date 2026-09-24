@@ -1,0 +1,1586 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>그린센서 스마트팜</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --bg:#E7EEE2; --paper:#F9FBF5; --paper2:#EFF4EA; --ink:#17281E; --muted:#58695D; --line:#C6D3BF;
+  --leaf:#2E7A4A; --leaf-d:#1E5634; --leaf-l:#D5E8D6;
+  --temp:#D65F2A; --moist:#2A72B5; --light:#BE8A0E; --nh3:#7B55B3; --feed:#8F6236;
+  --ok:#2E7A4A; --warn:#B97E0C; --bad:#BD3B28;
+  --r:10px;
+  --card:#FFFFFF; --goal-bg:#17281E; --goal-ink:#E9F2E4; --on-bg:#F2F9F1; --fire-bg:#EEF5FC; --band:rgba(46,122,74,.12); --band-line:rgba(46,122,74,.35);
+  --display:"Do Hyeon","IBM Plex Sans KR",system-ui,sans-serif;
+  --body:"IBM Plex Sans KR",system-ui,-apple-system,"Malgun Gothic",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+:root.factory{
+  color-scheme:dark;
+  --bg:#0D1316; --paper:#141C21; --paper2:#1B252B; --card:#182127; --ink:#E3EBEE; --muted:#8C9DA5; --line:#28353D;
+  --leaf:#35B99B; --leaf-d:#72DAC0; --leaf-l:#1D3833;
+  --temp:#FF8A4C; --moist:#58A9FF; --light:#F0C04C; --ok:#35B99B; --warn:#E6A62B; --bad:#FF5D4A;
+  --goal-bg:#091014; --goal-ink:#BFD6CF; --on-bg:#132D27; --fire-bg:#12283A; --band:rgba(53,185,155,.13); --band-line:rgba(53,185,155,.45);
+}
+:root.factory .goal{border:1px solid var(--line);background:linear-gradient(90deg,#0A1216,#0F1B1F)}
+:root.factory .goal .gt,:root.factory .panel h2,:root.factory .tabs{font-family:var(--mono)}
+:root.factory .goal .gt{font-size:17px;letter-spacing:.06em;text-transform:uppercase;color:var(--leaf-d)}
+:root.factory .panel{box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
+:root.factory .scene canvas{border:1px solid var(--line)}
+.lines{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.line{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:12px 14px;text-align:left;display:flex;flex-direction:column;gap:6px;font-family:var(--body)}
+.line[aria-selected="true"]{border-color:var(--leaf);box-shadow:0 0 0 1px var(--leaf) inset}
+.line .lh{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:.1em;color:var(--muted)}
+.line .lamp{width:10px;height:10px;border-radius:50%;box-shadow:0 0 8px currentColor}
+.line .ln{font-weight:700;font-size:16px;color:var(--ink)}
+.line .lk{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);font-family:var(--mono)}
+.line .lk b{color:var(--ink)}
+.line .lb{height:6px;border-radius:3px;background:var(--paper2);overflow:hidden}
+.line .lb i{display:block;height:100%;background:var(--leaf)}
+:root.farm{
+  --bg:#FCF1E4; --paper:#FFFAF3; --paper2:#FBEBDC; --card:#FFFFFF; --ink:#4A2F26; --muted:#8E6E61; --line:#F0D6C2;
+  --leaf:#4DA65E; --leaf-d:#D9604F; --leaf-l:#FFE3DA;
+  --goal-bg:#6B4336; --goal-ink:#FFEBDD; --on-bg:#FFF1E9; --fire-bg:#FFF4D8;
+}
+:root.farm .panel{border-radius:22px;border-width:2px}
+:root.farm .goal{border-radius:22px;background:linear-gradient(90deg,#7A4B3C,#9A5D48)}
+:root.farm .goal .gt{font-size:22px}
+:root.farm .tabs button{border-radius:14px 14px 0 0;border-width:2px 2px 4px}
+:root.farm .tabs button[aria-selected="true"]{border-bottom-color:#F08A7B}
+:root.farm .act{border-radius:16px;border-width:2px}
+:root.farm .act[aria-pressed="true"]{border-color:#F08A7B}
+:root.farm .act[aria-pressed="true"] .sw{background:#F08A7B}
+:root.farm .rule{border-radius:14px}
+:root.farm .sc{border-radius:16px}
+:root.farm .scene canvas{border-radius:18px}
+:root.farm .compost{border-radius:16px;background:#FFF1DE;border-color:#F1CFA6}
+/* 인트로: 스마트팜 문 */
+#intro{position:fixed;inset:0;z-index:60;perspective:1800px;cursor:pointer;overflow:hidden}
+#intro .glow{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(255,244,200,.95) 0%,rgba(255,244,200,0) 60%);opacity:0;transition:opacity .9s ease .2s;pointer-events:none}
+#intro .door{position:absolute;top:0;bottom:0;width:50%;background:#1F5A37;padding:clamp(14px,2.4vw,30px);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1.2fr 1fr 1fr;gap:clamp(8px,1.2vw,14px);transition:transform 1.4s cubic-bezier(.62,.02,.28,1) .18s,filter 1.4s ease .18s;backface-visibility:hidden;box-shadow:inset 0 0 0 4px #17462A}
+#intro .door.l{left:0;transform-origin:left center}
+#intro .door.r{right:0;transform-origin:right center}
+#intro .pane{border-radius:6px;background:linear-gradient(160deg,rgba(236,247,238,.86),rgba(205,230,212,.78));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);position:relative;overflow:hidden}
+#intro .pane::after{content:"";position:absolute;left:-30%;top:-10%;width:40%;height:140%;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.45),rgba(255,255,255,0));transform:rotate(18deg)}
+#intro .handle{position:absolute;top:50%;width:12px;height:clamp(90px,16vh,150px);margin-top:calc(clamp(90px,16vh,150px) / -2);border-radius:6px;background:linear-gradient(90deg,#C9D3CC,#F2F6F3,#AEB9B1);box-shadow:0 2px 6px rgba(0,0,0,.35)}
+#intro .door.l .handle{right:clamp(18px,2.4vw,34px)}
+#intro .door.r .handle{left:clamp(18px,2.4vw,34px)}
+#intro .sign{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(620px,calc(100% - 32px));background:#F9FBF5;border:4px solid #17462A;border-radius:24px;padding:clamp(22px,4vw,40px) clamp(18px,4vw,44px);text-align:center;box-shadow:0 18px 50px rgba(10,30,18,.35);transition:opacity .45s ease,transform .6s ease;word-break:keep-all}
+#intro .sign small{display:block;font-weight:700;letter-spacing:.14em;color:#2E7A4A;font-size:clamp(14px,2.2vw,20px);margin-bottom:10px}
+#intro .sign h1{font-family:var(--display);font-weight:400;color:#17281E;font-size:clamp(42px,8.5vw,92px);line-height:1.05;margin:0}
+#intro .sign h1 em{font-style:normal;color:#2E7A4A}
+#intro .sign .chips{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:18px 0 16px}
+#intro .sign .chips span{font-size:12px;font-weight:700;color:#fff;border-radius:6px;padding:2px 8px}
+#intro .sign p{margin:0;color:#58695D;font-size:15px;animation:knock 1.8s ease-in-out infinite}
+#intro .sign svg{width:54px;height:54px;margin-bottom:6px}
+@keyframes knock{0%,100%{opacity:.55}50%{opacity:1}}
+#intro.open{cursor:default;pointer-events:none}
+#intro.open .door.l{transform:rotateY(-104deg);filter:brightness(.7)}
+#intro.open .door.r{transform:rotateY(104deg);filter:brightness(.7)}
+#intro.open .sign{opacity:0;transform:translate(-50%,-62%) scale(.96)}
+#intro.open .glow{opacity:1;transition:opacity .5s ease .3s}
+#intro.gone .glow{opacity:0;transition:opacity .6s ease}
+#intro .welcome{position:absolute;left:50%;top:50%;width:min(760px,calc(100% - 32px));transform:translate(-50%,-40%) scale(.9);opacity:0;text-align:center;pointer-events:none;background:rgba(249,251,245,.9);border:3px solid #2E7A4A;border-radius:28px;padding:clamp(20px,4vw,40px) clamp(16px,3vw,36px);box-shadow:0 20px 60px rgba(30,86,52,.25);transition:opacity .7s ease,transform .9s cubic-bezier(.2,.8,.2,1);word-break:keep-all}
+#intro .welcome small{display:block;font-weight:700;letter-spacing:.12em;color:#2E7A4A;font-size:clamp(13px,2vw,18px);margin-bottom:10px}
+#intro .welcome strong{display:block;font-family:var(--display);font-weight:400;color:#17281E;font-size:clamp(34px,6.4vw,68px);line-height:1.15}
+#intro .welcome strong em{font-style:normal;color:#2E7A4A}
+#intro.open .welcome{opacity:1;transform:translate(-50%,-50%) scale(1);transition-delay:.75s}
+#intro.gone .welcome{opacity:0;transform:translate(-50%,-60%) scale(1.03);transition:opacity .6s ease,transform .6s ease}
+@media (prefers-reduced-motion:reduce){#intro .door{transition:opacity .4s ease!important}#intro.open .door{transform:none;opacity:0}#intro .sign p{animation:none}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{background:var(--bg);color:var(--ink)}
+body{font-family:var(--body);font-size:15px;line-height:1.5;word-break:keep-all}
+button,select,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--moist);outline-offset:2px}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:16px 40px}
+
+/* top bar */
+.top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px;margin-bottom:14px}
+.brand{font-family:var(--display);font-size:26px;letter-spacing:.5px;color:var(--leaf-d);display:flex;align-items:center;gap:8px}
+.brand svg{width:34px;height:34px}
+.brand-t{display:flex;flex-direction:column;line-height:1.1}
+.brand-t small{font-family:var(--body);font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--muted);margin-bottom:3px}
+.top .spacer{flex:1}
+.hud{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:13px;display:flex;gap:6px;align-items:center;white-space:nowrap}
+.chip b{font-family:var(--mono);font-weight:600}
+.btn{border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:7px 14px;font-weight:600}
+.btn:hover{border-color:var(--leaf)}
+.btn.primary{background:var(--leaf);border-color:var(--leaf);color:#fff}
+.btn.primary:hover{background:var(--leaf-d)}
+.btn.sm{padding:4px 10px;font-size:13px}
+.speed{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--paper)}
+.speed button{border:0;background:none;padding:6px 11px;font-family:var(--mono);font-size:13px;border-right:1px solid var(--line)}
+.speed button:last-child{border-right:0}
+.speed button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+
+/* menu */
+.hero{display:grid;grid-template-columns:1.2fr 1fr;gap:24px;align-items:center;margin:8px 0 26px}
+.hero h1{font-family:var(--display);font-weight:400;font-size:clamp(34px,6vw,56px);line-height:1.08;margin:0 0 12px;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--leaf)}
+.hero p{margin:0 0 10px;color:var(--muted);max-width:52ch}
+.hero .sensors-legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.tag{font-size:13px;border-radius:6px;padding:3px 9px;font-weight:600;color:#fff}
+.hero canvas{width:100%;aspect-ratio:16/10;border-radius:14px;border:1px solid var(--line);background:#cfe6ef;max-width:100%}
+.stages{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.stage{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:8px}
+.stage .lv{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+.stage h3{font-family:var(--display);font-weight:400;font-size:24px;margin:0;line-height:1.15}
+.stage p{margin:0;color:var(--muted);font-size:14px}
+.stage ul{margin:0;padding-left:18px;font-size:14px}
+.stage .foot{margin-top:auto;display:flex;align-items:center;justify-content:space-between;padding-top:8px}
+.stars{font-size:18px;letter-spacing:2px;color:#D9A21B}
+.stars .off{color:var(--line)}
+.howto{margin-top:22px;display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.howto div{border-top:2px solid var(--ink);padding-top:8px;font-size:14px;color:var(--muted)}
+.howto b{display:block;color:var(--ink);font-size:15px}
+
+/* game */
+.goal{display:flex;flex-wrap:wrap;gap:8px 18px;align-items:center;background:var(--goal-bg);color:var(--goal-ink);border-radius:12px;padding:10px 16px;margin-bottom:12px}
+.goal .gt{font-family:var(--display);font-size:20px}
+.goal .gp{display:flex;gap:14px;flex-wrap:wrap;font-size:14px}
+.goal .gp b{font-family:var(--mono);color:#fff}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tabs button{border:1px solid var(--line);background:var(--paper);border-radius:8px 8px 0 0;padding:6px 14px;font-weight:600;border-bottom-width:3px}
+.tabs button[aria-selected="true"]{border-bottom-color:var(--leaf);background:var(--card)}
+.tabs .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:6px;vertical-align:middle}
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:14px}
+.panel h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:0 0 10px;font-weight:700;display:flex;align-items:center;gap:8px}
+.panel h2 .sp{flex:1}
+.scene{position:relative}
+.scene canvas{display:block;width:100%;border-radius:10px;background:#cfe6ef}
+.scene .status{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:10px}
+.meter{font-size:13px}
+.meter .row{display:flex;justify-content:space-between}
+.meter .row b{font-family:var(--mono)}
+.bar{height:8px;border-radius:5px;background:var(--paper2);border:1px solid var(--line);overflow:hidden;margin-top:3px}
+.bar i{display:block;height:100%;background:var(--leaf);transition:width .3s}
+.act-inline{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.sensors{display:grid;grid-template-columns:1fr;gap:8px}
+.sc{border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:grid;grid-template-columns:auto 1fr;gap:2px 12px;align-items:center;background:var(--card);border-left-width:4px}
+.sc .nm{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.sc .val{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1.1;white-space:nowrap}
+.sc .val small{font-size:12px;color:var(--muted);margin-left:2px}
+.sc canvas{grid-row:1/4;grid-column:2;width:100%;height:54px}
+.sc .opt{font-size:12px;color:var(--muted)}
+.pill{font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px;color:#fff}
+.pill.ok{background:var(--ok)}.pill.warn{background:var(--warn)}.pill.bad{background:var(--bad)}.pill.low{background:#7F8C84}
+.acts{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.act{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:8px 10px;text-align:left;display:flex;flex-direction:column;gap:2px;position:relative}
+.act .an{font-weight:700;font-size:14px}
+.act .ad{font-size:12px;color:var(--muted)}
+.act .sw{position:absolute;right:10px;top:10px;width:34px;height:20px;border-radius:10px;background:var(--line);transition:background .2s}
+.act .sw::after{content:"";position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .2s}
+.act[aria-pressed="true"] .sw{background:var(--leaf)}
+.act[aria-pressed="true"] .sw::after{left:16px}
+.act[aria-pressed="true"]{border-color:var(--leaf);background:var(--on-bg)}
+.act:disabled{cursor:not-allowed}
+.act .auto{font-size:11px;font-weight:700;color:var(--moist)}
+.row2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px;margin-top:14px}
+.autosw{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0}
+.toggle{position:relative;width:46px;height:26px;border-radius:13px;background:var(--line);border:0;transition:background .2s;flex:none}
+.toggle::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s}
+.toggle[aria-checked="true"]{background:var(--moist)}
+.toggle[aria-checked="true"]::after{left:23px}
+.rules{display:flex;flex-direction:column;gap:6px}
+.rule{display:flex;flex-wrap:wrap;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:14px}
+.rule .kw{font-family:var(--mono);font-weight:600;color:var(--moist);font-size:13px}
+.rule select,.rule input{border:1px solid var(--line);border-radius:6px;padding:3px 6px;background:var(--paper)}
+.rule input{width:78px;font-family:var(--mono)}
+.rule .x{margin-left:auto;border:0;background:none;color:var(--muted);font-size:18px;line-height:1;padding:0 4px}
+.xs-h{font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--muted);margin-top:6px}
+.xs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:6px}
+.xs{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:6px 9px;display:flex;flex-direction:column;gap:1px;font-size:12px}
+.xs .xn{color:var(--muted);display:flex;gap:4px;align-items:center;justify-content:space-between}
+.xs b{font-family:var(--mono);font-size:16px;white-space:nowrap}
+.xs .xo{color:var(--muted);font-size:11px}
+.weather{flex-wrap:wrap}
+.card.wide{max-width:1000px}
+.labp{margin-top:14px}
+.labhead{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
+.labplant{font-family:var(--display);font-size:24px;color:var(--leaf-d)}
+.labbtns{display:flex;gap:6px;flex-wrap:wrap}
+.labgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px}
+.tblwrap{overflow-x:auto}
+.ctbl,.dtbl{width:100%;border-collapse:collapse;font-size:13px}
+.ctbl th,.ctbl td,.dtbl th,.dtbl td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.ctbl th,.dtbl th{font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.04em;position:sticky;top:0;background:var(--paper)}
+.ctbl td:nth-child(2),.ctbl td:nth-child(3),.dtbl td{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.dtbl td.ok{color:var(--ok);font-weight:700}.dtbl td.no{color:var(--warn);font-weight:700}
+.datahead{display:flex;align-items:center;gap:10px;margin-bottom:6px;font-size:14px}
+.datahead span{color:var(--muted);font-size:12px;flex:1}
+#csvBox{width:100%;height:90px;margin-top:6px;font-family:var(--mono);font-size:11px}
+/* 식물 선택 */
+.pk{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:16px}
+.pk-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.pk-tabs button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 12px;font-weight:600;font-size:13px}
+.pk-tabs button[aria-pressed="true"]{background:var(--leaf);border-color:var(--leaf);color:#fff}
+.pk-search{width:100%;border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:var(--card);margin-bottom:8px}
+.pk-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;max-height:52vh;overflow:auto;padding:2px}
+.pk-item{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:8px 10px;text-align:left;display:flex;flex-direction:column;gap:2px}
+.pk-item b{font-size:15px}
+.pk-item span{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.pk-item[aria-pressed="true"]{border-color:var(--leaf);box-shadow:0 0 0 2px var(--leaf) inset;background:var(--on-bg)}
+.pk-item .sw2{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.pk-detail{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:12px 14px}
+.pk-detail h3{font-family:var(--display);font-weight:400;font-size:28px;margin:0}
+.pk-detail .cat{font-size:12px;font-weight:700;color:var(--leaf)}
+.pk-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px;margin-top:8px}
+.pk-form label{font-size:12px;color:var(--muted);display:flex;flex-direction:column;gap:3px}
+.pk-form .rng{display:flex;gap:4px;align-items:center}
+.pk-form input,.pk-form select{border:1px solid var(--line);border-radius:6px;padding:4px 6px;background:var(--paper);width:100%;font-family:var(--mono);font-size:13px}
+.pk-form .full{grid-column:1/-1}
+.pk-err{color:var(--bad);font-size:13px;min-height:1em;margin:6px 0 0}
+@media (max-width:900px){.labgrid,.pk{grid-template-columns:1fr}.pk-form{grid-template-columns:1fr}}
+.rule .onoff{font-weight:700;color:var(--ok)}
+.rule .onoff.off{color:var(--bad)}
+.rule .rn{font-size:12px;color:var(--muted);background:var(--paper2);border-radius:999px;padding:1px 8px}
+.rule.fire-off{border-color:var(--bad);background:var(--fire-bg)}
+.rules{max-height:470px;overflow:auto;padding-right:2px}
+.rule.fire{border-color:var(--moist);background:var(--fire-bg)}
+.hint{font-size:13px;color:var(--muted);margin:8px 0 0}
+.log{list-style:none;margin:0;padding:0;max-height:220px;overflow:auto;font-size:13px;display:flex;flex-direction:column;gap:4px}
+.log li{display:grid;grid-template-columns:auto 1fr;gap:8px;padding:4px 0;border-bottom:1px dashed var(--line)}
+.log time{font-family:var(--mono);color:var(--muted);white-space:nowrap}
+.log .e-bad{color:var(--bad);font-weight:600}.log .e-good{color:var(--ok);font-weight:600}.log .e-info{color:var(--ink)}
+.weather{display:flex;gap:10px;align-items:center;font-size:14px;margin-bottom:8px}
+.weather b{font-family:var(--mono)}
+.compost{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;font-size:14px;background:#F6EFE4;border:1px solid #E1CFB3;border-radius:10px;padding:8px 10px}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(15,28,20,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+.card{background:var(--paper);border-radius:16px;max-width:540px;width:100%;padding:22px;max-height:90vh;overflow:auto;border:1px solid var(--line)}
+.card h2{font-family:var(--display);font-weight:400;font-size:30px;margin:0 0 6px}
+.card p{margin:0 0 10px}
+.card .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
+.card .stats div{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px;color:var(--muted)}
+.card .stats b{display:block;font-family:var(--mono);font-size:18px;color:var(--ink)}
+.card .btns{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:14px}
+.card ol{padding-left:20px;margin:6px 0 10px}
+.card li{margin-bottom:5px}
+.big-stars{font-size:34px;letter-spacing:6px;color:#D9A21B}
+.big-stars .off{color:var(--line)}
+
+@media (max-width:900px){
+  .lines{grid-template-columns:1fr}
+  .hero{grid-template-columns:1fr}
+  .stages{grid-template-columns:1fr}
+  .howto{grid-template-columns:1fr 1fr}
+  .grid,.row2{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="intro" role="button" tabindex="0" aria-label="스마트팜 문을 열고 시작하기">
+  <div class="door l"><div class="pane"></div><div class="pane"></div><div class="pane"></div><div class="pane"></div><div class="pane"></div><div class="pane"></div><span class="handle"></span></div>
+  <div class="door r"><div class="pane"></div><div class="pane"></div><div class="pane"></div><div class="pane"></div><div class="pane"></div><div class="pane"></div><span class="handle"></span></div>
+  <div class="glow"></div>
+  <div class="welcome" aria-live="polite"><small>경기창의학교 프로젝트 · 그린센서 스마트팜</small><strong><em>스마트팜 농장</em>의<br>방문을 환영합니다.</strong></div>
+  <div class="sign">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28 L4 14 Q16 2 28 14 L28 28 Z" fill="#D5E8D6" stroke="#1E5634" stroke-width="2"/><path d="M16 27 C16 20 16 18 16 16" stroke="#2E7A4A" stroke-width="2.4" fill="none"/><path d="M16 20 C11 20 9 16 9 14 C13 14 16 16 16 20Z M16 18 C20 18 23 15 23 12 C19 12 16 14 16 18Z" fill="#2E7A4A"/></svg>
+    <small>경기창의학교 프로젝트</small>
+    <h1>그린센서 <em>스마트팜</em></h1>
+    <div class="chips"><span style="background:#D65F2A">온도</span><span style="background:#2A72B5">수분</span><span style="background:#BE8A0E">빛</span><span style="background:#7B55B3">암모니아</span><span style="background:#8F6236">사료량</span></div>
+    <p>문을 클릭하면 스마트팜이 열려요</p>
+  </div>
+</div>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28 L4 14 Q16 2 28 14 L28 28 Z" fill="#D5E8D6" stroke="#1E5634" stroke-width="2"/><path d="M16 27 C16 20 16 18 16 16" stroke="#2E7A4A" stroke-width="2.4" fill="none"/><path d="M16 20 C11 20 9 16 9 14 C13 14 16 16 16 20Z M16 18 C20 18 23 15 23 12 C19 12 16 14 16 18Z" fill="#2E7A4A"/></svg>
+      <span class="brand-t"><small>경기창의학교 프로젝트 과제</small>그린센서 스마트팜</span>
+    </div>
+    <div class="spacer"></div>
+    <div class="hud" id="hud" hidden>
+      <span class="chip" id="clock">1일차 <b>06:00</b></span>
+      <span class="chip">전기요금 <b id="power">0원</b></span>
+      <span class="chip" id="moneyChip" hidden>잔고 <b id="money">0원</b></span>
+      <div class="speed" role="group" aria-label="게임 속도">
+        <button data-sp="0" aria-pressed="false" title="일시정지">❚❚</button>
+        <button data-sp="1" aria-pressed="true">×1</button>
+        <button data-sp="2" aria-pressed="false">×2</button>
+        <button data-sp="4" aria-pressed="false">×4</button>
+      </div>
+      <button class="btn sm" id="exitBtn">스테이지 선택</button>
+    </div>
+  </header>
+
+  <!-- MENU -->
+  <section id="menu">
+    <div class="hero">
+      <div>
+        <h1>센서가 읽고,<br>내가 <em>판단</em>하고,<br>규칙이 <em>자동</em>으로 움직인다</h1>
+        <p>온도·토양 수분·빛 센서 값을 보고 히터, 환풍기, 급수 펌프, LED, 차광막을 조절해 작물을 키우는 스마트팜 시뮬레이션 게임입니다.</p>
+        <p>익숙해지면 <b>IF–THEN 자동제어 규칙</b>을 만들어 농장을 스스로 돌아가게 해 보세요.</p>
+        <div class="sensors-legend">
+          <span class="tag" style="background:var(--temp)">온도 센서</span>
+          <span class="tag" style="background:var(--moist)">토양 수분 센서</span>
+          <span class="tag" style="background:var(--light)">조도(빛) 센서</span>
+          <span class="tag" style="background:var(--nh3)">암모니아 센서</span>
+          <span class="tag" style="background:var(--feed)">사료량 센서</span>
+        </div>
+      </div>
+      <canvas id="heroCanvas" width="640" height="400" aria-label="스마트팜 온실 미리보기"></canvas>
+    </div>
+    <div class="stages" id="stageList"></div>
+    <div class="howto">
+      <div><b>① 센서 읽기</b>온도·수분·빛 값이 초록(적정) 범위 안에 있는지 확인</div>
+      <div><b>② 장치 조작</b>범위를 벗어나면 히터·환풍기·펌프·조명을 켜고 끄기</div>
+      <div><b>③ 규칙 만들기</b>"수분 &lt; 50% 이면 펌프 ON" 같은 자동제어 규칙 작성</div>
+      <div><b>④ 결과 분석</b>그래프로 변화를 살피고 전기요금을 아끼는 방법 찾기</div>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section id="game" hidden>
+    <div class="goal">
+      <span class="gt" id="goalTitle"></span>
+      <span class="gp" id="goalProg"></span>
+    </div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="grid">
+      <div class="panel scene">
+        <div class="weather" id="weather"></div>
+        <canvas id="scene" aria-label="농장 모습"></canvas>
+        <div class="status" id="status"></div>
+        <div id="compostBox"></div>
+      </div>
+      <div class="panel">
+        <h2>센서 모니터링 <span class="sp"></span><span style="text-transform:none;letter-spacing:0;font-weight:400">최근 24시간</span></h2>
+        <div class="sensors" id="sensors"></div>
+      </div>
+    </div>
+    <section class="panel labp" id="labPanel" hidden>
+      <div class="labhead">
+        <div><h2 style="margin:0">실험실 · 재배 조건표</h2><div class="labplant" id="labPlantName"></div></div>
+        <div class="labbtns"><button class="btn sm" id="reapply">조사값으로 규칙 다시 세팅</button><button class="btn sm" id="changePlant">식물 바꾸기</button></div>
+      </div>
+      <div class="labgrid">
+        <div class="tblwrap"><table class="ctbl"><thead><tr><th>조건</th><th>목표(조사값)</th><th>현재</th><th>상태</th></tr></thead><tbody id="condBody"></tbody></table>
+          <p class="hint" id="plantNote"></p></div>
+        <div>
+          <div class="datahead"><b>실험 데이터 기록</b><span id="dataCount"></span><button class="btn sm" id="copyCsv">CSV 복사</button></div>
+          <div class="tblwrap" style="max-height:260px;overflow:auto"><table class="dtbl"><thead><tr><th>시각</th><th>온도</th><th>습도</th><th>빛</th><th>CO₂</th><th>수분</th><th>지온</th><th>pH</th><th>EC</th><th>적합</th></tr></thead><tbody id="dataBody"></tbody></table></div>
+          <textarea id="csvBox" hidden readonly aria-label="CSV 데이터"></textarea>
+        </div>
+      </div>
+    </section>
+    <div class="row2">
+      <div class="panel">
+        <h2>자동제어 규칙 <span id="ruleCount" style="text-transform:none;letter-spacing:0;font-weight:600;color:var(--moist)"></span><span class="sp"></span>
+          <label class="autosw"><span id="autoLbl">자동제어 OFF</span><button class="toggle" role="switch" aria-checked="false" id="autoToggle" aria-labelledby="autoLbl"></button></label>
+        </h2>
+        <div class="rules" id="rules"></div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn sm" id="addRule">+ 규칙 추가</button>
+          <button class="btn sm" id="resetRules">예시 규칙으로 되돌리기</button>
+        </div>
+        <p class="hint"><b>ON 규칙</b>: 같은 장치에 여러 개면 하나라도 맞을 때 켜집니다. <b>OFF 규칙</b>은 안전 규칙이라 ON 규칙이나 수동 조작보다 우선합니다. <b>바깥 햇빛</b>은 LED·차광막 영향을 받지 않는 외부 조도, <b>시각</b>은 0~24시입니다.</p>
+      </div>
+      <div class="panel">
+        <h2>장치 제어</h2>
+        <div class="acts" id="acts"></div>
+        <h2 style="margin-top:14px">농장 일지</h2>
+        <ul class="log" id="log"></ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="modal" id="modal" hidden><div class="card" id="modalCard"></div></div>
+
+<script>
+(function(){
+const $=s=>document.querySelector(s);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const won=n=>Math.round(n).toLocaleString('ko-KR')+'원';
+const rnd=(a,b)=>a+Math.random()*(b-a);
+
+/* ---------- 데이터 ---------- */
+const CROPS={
+  lettuce:{name:'상추',shape:'leafy',fruit:'#6DBB5A',T:[15,25],M:[50,75],L:[10000,30000],ST:[15,22],EC:[1.2,2.0],rate:0.45,price:150000},
+  strawberry:{name:'딸기',shape:'berry',fruit:'#D42F3A',T:[17,24],M:[55,70],L:[20000,40000],ST:[15,20],EC:[0.8,1.6],rate:0.36,price:280000},
+  tomato:{name:'토마토',shape:'vine',fruit:'#DB3B26',T:[20,28],M:[45,65],L:[25000,50000],ST:[18,24],EC:[2.0,3.5],rate:0.36,price:230000}
+};
+
+/* ---------- 식물 도감 (조사값을 게임용으로 단순화) ----------
+   T 생육 적온(°C) · M 토양 수분(%) · L 조도(lx) · H 공기 습도(%) · CO2(ppm) · ST 토양(근권) 온도(°C) · PH · EC(dS/m)
+   참고: 농사로·제주농업기술원 작목 자료(오이·고추 생육적온/지온/습도), 수경재배 pH·EC 가이드(채소·과일) */
+const PLANT_LIB=[
+ {id:'lettuce_v',cat:'채소',name:'상추',shape:'leafy',fruit:'#6DBB5A',T:[15,23],M:[60,80],L:[10000,30000],H:[60,80],CO2:[400,1000],ST:[15,20],PH:[5.5,6.5],EC:[1.2,2.0],note:'서늘한 기온을 좋아하고 25°C가 넘으면 꽃대가 올라와요.'},
+ {id:'spinach',cat:'채소',name:'시금치',shape:'leafy',fruit:'#3E8E41',T:[15,20],M:[60,80],L:[10000,25000],H:[60,80],CO2:[400,1000],ST:[12,18],PH:[6.0,7.0],EC:[1.4,2.0],note:'산성 흙에 약해 pH를 중성 가까이 맞춰요.'},
+ {id:'cabbage',cat:'채소',name:'배추',shape:'leafy',fruit:'#B7D98B',T:[15,22],M:[60,80],L:[15000,35000],H:[60,80],CO2:[400,1000],ST:[15,20],PH:[6.0,6.5],EC:[1.8,2.4],note:'속이 차려면 선선한 온도가 필요해요.'},
+ {id:'kale',cat:'채소',name:'케일',shape:'leafy',fruit:'#2F6B3A',T:[15,24],M:[60,75],L:[15000,35000],H:[60,75],CO2:[400,1000],ST:[15,20],PH:[6.0,6.5],EC:[1.8,2.8],note:'양분을 많이 먹는 잎채소예요.'},
+ {id:'basil',cat:'채소',name:'바질',shape:'leafy',fruit:'#4CAF50',T:[20,30],M:[55,70],L:[20000,40000],H:[50,70],CO2:[400,1000],ST:[18,24],PH:[5.5,6.5],EC:[1.6,2.2],note:'따뜻하고 밝은 곳을 좋아하는 허브예요.'},
+ {id:'cucumber',cat:'채소',name:'오이',shape:'vine',fruit:'#3F8F3A',T:[18,28],M:[65,80],L:[20000,45000],H:[70,85],CO2:[400,1000],ST:[20,23],PH:[5.5,6.5],EC:[1.7,2.5],note:'낮 25~28°C, 밤 15~18°C. 습도가 높아야 잘 자라요.'},
+ {id:'tomato_v',cat:'채소',name:'토마토',shape:'vine',fruit:'#DB3B26',T:[17,27],M:[55,70],L:[25000,60000],H:[60,80],CO2:[400,1000],ST:[18,22],PH:[5.5,6.5],EC:[2.0,3.5],note:'빛을 아주 많이 좋아해요. 양분 농도도 높게!'},
+ {id:'pepper',cat:'채소',name:'고추',shape:'vine',fruit:'#C62828',T:[18,28],M:[55,70],L:[20000,40000],H:[60,75],CO2:[400,1000],ST:[18,24],PH:[6.0,6.5],EC:[1.8,2.2],note:'광포화점이 약 3만 lx로 다른 열매채소보다 낮아요.'},
+ {id:'eggplant',cat:'채소',name:'가지',shape:'vine',fruit:'#5B2A6E',T:[20,30],M:[60,75],L:[25000,50000],H:[60,75],CO2:[400,1000],ST:[18,24],PH:[5.8,6.5],EC:[2.0,3.5],note:'고온성 작물이라 밤에도 따뜻해야 해요.'},
+ {id:'radish',cat:'채소',name:'무',shape:'root',fruit:'#F4F1EA',T:[15,22],M:[60,75],L:[15000,35000],H:[60,75],CO2:[400,1000],ST:[13,20],PH:[6.0,7.0],EC:[1.4,1.8],note:'뿌리가 굵어지려면 토양 온도가 너무 높지 않아야 해요.'},
+ {id:'strawberry_f',cat:'과일',name:'딸기',shape:'berry',fruit:'#D42F3A',T:[12,25],M:[60,75],L:[20000,40000],H:[60,75],CO2:[400,1000],ST:[15,20],PH:[5.5,6.5],EC:[1.0,1.8],note:'밤에는 서늘해야 열매가 달고 단단해져요.'},
+ {id:'melon',cat:'과일',name:'멜론',shape:'melon',fruit:'#C9D98A',T:[22,30],M:[60,75],L:[30000,60000],H:[50,70],CO2:[400,1000],ST:[20,25],PH:[5.5,6.5],EC:[2.0,2.5],note:'고온·강광을 좋아하고 습도가 높으면 병이 생겨요.'},
+ {id:'watermelon',cat:'과일',name:'수박',shape:'melon',fruit:'#2E7D32',T:[22,30],M:[55,70],L:[30000,70000],H:[50,70],CO2:[400,1000],ST:[20,25],PH:[5.8,6.5],EC:[1.5,2.4],note:'빛이 아주 많이 필요한 과일이에요.'},
+ {id:'chamoe',cat:'과일',name:'참외',shape:'melon',fruit:'#F2C12E',T:[20,30],M:[55,70],L:[30000,60000],H:[50,70],CO2:[400,1000],ST:[18,25],PH:[6.0,6.5],EC:[1.8,2.4],note:'우리나라 대표 시설 과일로 따뜻한 지온이 중요해요.'},
+ {id:'blueberry',cat:'과일',name:'블루베리',shape:'bush',fruit:'#3F51B5',T:[15,25],M:[60,75],L:[20000,50000],H:[60,75],CO2:[400,1000],ST:[15,22],PH:[4.5,5.5],EC:[1.0,1.8],note:'강한 산성 흙(pH 4.5~5.5)을 좋아하는 특별한 과일이에요.'},
+ {id:'grape',cat:'과일',name:'포도',shape:'bush',fruit:'#6A1B9A',T:[18,28],M:[55,70],L:[30000,60000],H:[50,70],CO2:[400,1000],ST:[18,24],PH:[6.0,7.0],EC:[1.0,1.8],note:'건조하고 밝은 환경에서 당도가 올라가요.'},
+ {id:'fig',cat:'과일',name:'무화과',shape:'bush',fruit:'#8D4E6B',T:[20,30],M:[55,70],L:[30000,60000],H:[50,70],CO2:[400,1000],ST:[18,25],PH:[6.0,7.0],EC:[1.2,2.0],note:'따뜻한 곳을 좋아하는 과일나무예요.'},
+ {id:'banana',cat:'과일',name:'바나나',shape:'palm',fruit:'#F2D23B',T:[22,32],M:[65,80],L:[30000,60000],H:[70,85],CO2:[400,1000],ST:[20,28],PH:[5.5,6.5],EC:[1.8,2.2],note:'열대 과일이라 덥고 습해야 해요.'},
+ {id:'pineapple',cat:'과일',name:'파인애플',shape:'rosette',fruit:'#E0A526',T:[22,32],M:[45,60],L:[30000,60000],H:[60,80],CO2:[400,1000],ST:[20,28],PH:[5.0,6.0],EC:[2.0,2.4],note:'물을 적게 주고 약산성 흙에서 키워요.'},
+ {id:'passion',cat:'과일',name:'패션프루트',shape:'vine',fruit:'#6D2E5B',T:[20,30],M:[60,75],L:[30000,60000],H:[60,80],CO2:[400,1000],ST:[20,26],PH:[6.0,7.0],EC:[1.6,2.4],note:'덩굴로 자라는 열대 과일이에요.'}
+];
+const PARAMS=[
+ {k:'T',name:'공기 온도',unit:'°C',sensor:'temp',step:1},
+ {k:'H',name:'공기 습도',unit:'%',sensor:'humid',step:1},
+ {k:'L',name:'빛(조도)',unit:'lx',sensor:'light',step:1000},
+ {k:'CO2',name:'이산화탄소',unit:'ppm',sensor:'co2',step:50},
+ {k:'M',name:'토양 수분',unit:'%',sensor:'moist',step:1},
+ {k:'ST',name:'토양 온도',unit:'°C',sensor:'soilT',step:1},
+ {k:'PH',name:'pH(산도)',unit:'',sensor:'ph',step:0.1},
+ {k:'EC',name:'EC(양분)',unit:'dS/m',sensor:'ec',step:0.1}
+];
+let customPlants=[];
+try{customPlants=JSON.parse(localStorage.getItem('sf-custom-plants')||'[]')}catch(e){customPlants=[]}
+function saveCustom(){try{localStorage.setItem('sf-custom-plants',JSON.stringify(customPlants))}catch(e){}}
+function allPlants(){return PLANT_LIB.concat(customPlants);}
+function plantById(id){return allPlants().find(p=>p.id===id);}
+function registerPlant(p){ CROPS['p_'+p.id]={name:p.name,shape:p.shape,fruit:p.fruit,T:p.T,M:p.M,L:p.L,H:p.H,CO2:p.CO2,ST:p.ST,PH:p.PH,EC:p.EC,rate:0.45,price:150000,plant:p.id}; return 'p_'+p.id; }
+let labPlant='lettuce_v';
+const SENS={
+  temp:{name:'온도',unit:'°C',d:1,color:'--temp',dev:'온도 센서'},
+  moist:{name:'토양 수분',unit:'%',d:0,color:'--moist',dev:'수분 센서'},
+  light:{name:'조도',unit:'lx',d:0,color:'--light',dev:'빛 센서'},
+  nh3:{name:'암모니아',unit:'ppm',d:1,color:'--nh3',dev:'가스 센서'},
+  feed:{name:'사료량',unit:'%',d:0,color:'--feed',dev:'거리 센서'},
+  humid:{name:'습도',unit:'%',d:0,color:'--moist',dev:'습도 센서'},
+  co2:{name:'이산화탄소',unit:'ppm',d:0,color:'--muted',dev:'CO₂ 센서'},
+  soilT:{name:'토양 온도',unit:'°C',d:1,color:'--temp',dev:'지온 센서'},
+  ph:{name:'pH(산도)',unit:'',d:2,color:'--nh3',dev:'pH 센서'},
+  ec:{name:'EC(양분)',unit:'dS/m',d:2,color:'--feed',dev:'EC 센서'},
+  wind:{name:'풍속',unit:'m/s',d:1,color:'--moist',dev:'풍속계'},
+  dir:{name:'풍향',unit:'°',d:0,color:'--muted',dev:'풍향계'},
+  sun:{name:'바깥 햇빛',unit:'lx',d:0,color:'--light',dev:'외부 조도 센서'},
+  hour:{name:'시각',unit:'시',d:0,color:'--muted',dev:'타이머'}
+};
+const RULE_EXTRA=['sun','hour'];
+const DIRS=['북','북동','동','남동','남','남서','서','북서'];
+function dirName(v){return DIRS[Math.round(((v%360)+360)%360/45)%8];}
+function fmtS(s,v){ if(s==='dir') return `${dirName(v)} ${Math.round(v)}°`; return fmt(v,SENS[s].d)+(SENS[s].unit?(' '+SENS[s].unit):''); }
+const ACTS={
+  heater:{name:'히터',cost:120,desc:'온도 올리기'},
+  fan:{name:'환풍기',cost:40,desc:'환기·온도 내리기'},
+  pump:{name:'급수 펌프',cost:30,desc:'토양 수분 올리기'},
+  led:{name:'LED 보광등',cost:80,desc:'빛 보충하기'},
+  shade:{name:'차광막',cost:5,desc:'햇빛·열 줄이기'},
+  feeder:{name:'자동 급이기',cost:10,desc:'사료 채우기'},
+  lamp:{name:'축사 조명',cost:30,desc:'닭장 밝히기'},
+  mist:{name:'가습기(포그)',cost:20,desc:'습도 올리기'},
+  co2gen:{name:'CO₂ 공급기',cost:50,desc:'이산화탄소 올리기'},
+  soilheat:{name:'지중 난방',cost:60,desc:'토양 온도 올리기'},
+  nutrient:{name:'양액 공급기',cost:15,desc:'EC(양분) 올리기'},
+  acid:{name:'pH 조절기',cost:5,desc:'pH 낮추기(산 주입)'},
+  window:{name:'천창(환기창)',cost:2,desc:'자연 환기·전기 절약'}
+};
+const KIND={
+  crop:{sensors:['temp','moist','light'],extra:['humid','co2','soilT','ph','ec','wind','dir'],acts:['heater','fan','pump','led','shade','window','mist','co2gen','soilheat','nutrient','acid']},
+  barn:{sensors:['temp','nh3','feed','light'],extra:['humid','co2','wind','dir'],acts:['heater','fan','feeder','lamp']}
+};
+const BARN={temp:[18,26],nh3:[0,15],feed:[30,100],light:[150,1000]};
+const STAGES=[
+  {id:1,title:'나만의 스마트팜 실험실',season:'봄',theme:'lab',sub:'식물을 골라 재배 조건을 세팅하고, 데이터를 모으며 키우기',
+   bullets:['채소 10종·과일 10종 중 식물 선택 (직접 추가 가능)','재배 조건 8가지를 조사값으로 세팅','실험 데이터를 모아 5일 안에 생장률 100%'],
+   Tbase:13,Tamp:7,Hout:55,days:5,budget:45000,events:['cloud','heat','cold','windy'],
+   zones:[{kind:'crop',crop:'lettuce',name:'재배 챔버 · 상추'}]},
+  {id:2,title:'동물과 함께하는 스마트팜',season:'초여름',theme:'farm',sub:'닭장을 돌보고, 닭똥 퇴비로 상추를 더 빨리 키우기',
+   bullets:['닭장 센서: 암모니아·사료량 추가','퇴비를 주면 작물 생장 1.35배','상추 수확 + 달걀 12개'],
+   Tbase:16,Tamp:7,Hout:68,days:6,budget:70000,events:['cloud','heat','windy'],
+   zones:[{kind:'crop',crop:'lettuce',name:'상추 온실'},{kind:'barn',name:'닭장'}]},
+  {id:3,title:'스마트팜 공장 운영',season:'겨울',theme:'factory',sub:'재배 라인 3개를 관제실에서 운영해 순이익 90만 원 달성',
+   bullets:['상추·딸기·토마토 라인, 적정 환경이 모두 다름','수확물은 컨베이어로 출하, 전기요금은 지출','자동제어 규칙이 꼭 필요'],
+   Tbase:3,Tamp:6,Hout:42,days:7,startMoney:300000,target:900000,events:['cloud','cold','windy'],
+   zones:[{kind:'crop',crop:'lettuce',name:'LINE A · 상추',code:'A'},{kind:'crop',crop:'strawberry',name:'LINE B · 딸기',code:'B'},{kind:'crop',crop:'tomato',name:'LINE C · 토마토',code:'C'}]}
+];
+const EVENTS={
+  clear:{name:'맑음',sun:1,dT:0},
+  cloud:{name:'흐림',sun:0.4,dT:-2,msg:'흐린 날씨! 햇빛이 60% 줄어듭니다. LED 보광등을 확인하세요.'},
+  heat:{name:'폭염',sun:1.05,dT:7,msg:'폭염 경보! 바깥 기온이 7°C 올라갑니다. 환기와 차광을 준비하세요.'},
+  cold:{name:'한파',sun:0.9,dT:-7,msg:'한파 주의보! 바깥 기온이 7°C 내려갑니다. 히터를 점검하세요.'},
+  windy:{name:'강풍',sun:0.9,dT:-1,wind:10,msg:'강풍 주의보! 풍속이 10m/s 가까이 올라갑니다. 천창을 닫으세요.'}
+};
+
+/* ---------- 진행 저장 ---------- */
+let progress={};
+try{progress=JSON.parse(localStorage.getItem('sf-progress')||'{}')}catch(e){progress={}}
+function saveProgress(){try{localStorage.setItem('sf-progress',JSON.stringify(progress))}catch(e){}}
+
+/* ---------- 상태 ---------- */
+let G=null, sel=0, speed=1, timer=null;
+
+function defaultRules(z){
+  if(z.kind==='barn') return [
+    {s:'temp',op:'<',v:18,a:'heater',on:'ON',n:'추위 막기'},
+    {s:'temp',op:'>',v:24,a:'heater',on:'OFF',n:'과열 방지'},
+    {s:'nh3',op:'>',v:12,a:'fan',on:'ON',n:'암모니아 빼기'},
+    {s:'temp',op:'>',v:26,a:'fan',on:'ON',n:'더위 식히기'},
+    {s:'temp',op:'<',v:14,a:'fan',on:'OFF',n:'찬바람 차단'},
+    {s:'feed',op:'<',v:30,a:'feeder',on:'ON',n:'사료 보충'},
+    {s:'sun',op:'<',v:150,a:'lamp',on:'ON',n:'빛 14시간 채우기'},
+    {s:'hour',op:'>',v:20,a:'lamp',on:'OFF',n:'밤에는 잠자기'},
+    {s:'hour',op:'<',v:4,a:'lamp',on:'OFF',n:'새벽까지 소등'},
+    {s:'humid',op:'>',v:80,a:'fan',on:'ON',n:'습기 빼기'},
+    {s:'co2',op:'>',v:2000,a:'fan',on:'ON',n:'공기 순환'}];
+  const c=CROPS[z.crop];
+  return [
+    {s:'temp',op:'<',v:c.T[0]+1,a:'heater',on:'ON',n:'추위 막기'},
+    {s:'temp',op:'>',v:c.T[1]+3,a:'heater',on:'OFF',n:'과열 방지'},
+    {s:'temp',op:'>',v:c.T[1]-1,a:'fan',on:'ON',n:'더위 식히기'},
+    {s:'temp',op:'<',v:c.T[0]-3,a:'fan',on:'OFF',n:'찬바람 차단'},
+    {s:'moist',op:'<',v:c.M[0]+5,a:'pump',on:'ON',n:'물 주기'},
+    {s:'moist',op:'>',v:c.M[1]-2,a:'pump',on:'OFF',n:'과습 방지'},
+    {s:'sun',op:'<',v:c.L[0],a:'led',on:'ON',n:'부족한 빛 보충'},
+    {s:'hour',op:'>',v:21,a:'led',on:'OFF',n:'밤에는 휴식'},
+    {s:'hour',op:'<',v:5,a:'led',on:'OFF',n:'새벽까지 소등'},
+    {s:'sun',op:'>',v:c.L[1]+8000,a:'shade',on:'ON',n:'강한 햇빛 가리기'},
+    {s:'temp',op:'>',v:c.T[1]-2,a:'window',on:'ON',n:'자연 환기'},
+    {s:'wind',op:'>',v:8,a:'window',on:'OFF',n:'강풍 보호'},
+    {s:'dir',op:'>',v:315,a:'window',on:'OFF',n:'찬 북풍 차단'},
+    {s:'humid',op:'<',v:(c.H||[60,80])[0],a:'mist',on:'ON',n:'건조 방지'},
+    {s:'humid',op:'>',v:(c.H||[60,80])[1]+5,a:'fan',on:'ON',n:'곰팡이 예방'},
+    {s:'co2',op:'<',v:(c.CO2||[400,1000])[0]+50,a:'co2gen',on:'ON',n:'광합성 돕기'},
+    {s:'sun',op:'<',v:2000,a:'co2gen',on:'OFF',n:'밤엔 공급 중지'},
+    {s:'soilT',op:'<',v:c.ST[0],a:'soilheat',on:'ON',n:'뿌리 보온'},
+    {s:'ec',op:'<',v:+(c.EC[0]+0.1).toFixed(1),a:'nutrient',on:'ON',n:'양분 보충'},
+    {s:'ph',op:'>',v:+((c.PH||[5.5,6.5])[1]-0.1).toFixed(1),a:'acid',on:'ON',n:'pH 낮추기'}];
+}
+function ruleSensors(z){ return KIND[z.kind].sensors.concat(KIND[z.kind].extra,RULE_EXTRA); }
+function optOf(z,s){
+  if(s==='hour') return [6,20];
+  if(s==='sun') s='light';
+  if(s==='wind') return [0,7];
+  if(s==='dir') return [0,360];
+  if(z.kind==='barn') return {humid:[50,75],co2:[400,2500]}[s]||BARN[s];
+  const c=CROPS[z.crop]; return {temp:c.T,moist:c.M,light:c.L,humid:c.H||[60,80],co2:c.CO2||[400,1000],soilT:c.ST,ph:c.PH||[5.5,6.5],ec:c.EC}[s];
+}
+function scaleOf(z,s){
+  return {temp:[-5,40],moist:[0,100],light:z.kind==='barn'?[0,1000]:[0,65000],nh3:[0,40],feed:[0,100]}[s];
+}
+function initCropVals(z){ const c=CROPS[z.crop]; z.s.soilT=(c.ST[0]+c.ST[1])/2; z.s.ph=c.PH?(c.PH[0]+c.PH[1])/2:6.0; z.s.ec=(c.EC[0]+c.EC[1])/2; if(c.H) z.s.humid=(c.H[0]+c.H[1])/2; }
+function newGame(idx){
+  const st=STAGES[idx];
+  G={st,idx,min:360,wind:3,dir:200,power:0,revenue:0,weather:'clear',log:[],over:false,
+     healthSum:0,healthN:0,compost:0,eggs:0,eggAcc:0,harvested:false,harvests:0,
+     zones:st.zones.map((zc,i)=>{
+       const z={...zc,i,auto:false,s:{},a:{},manual:{},hist:{},growth:0,health:100,boost:0,cond:90,lightHrs:0,fire:[]};
+       KIND[z.kind].acts.forEach(a=>{z.a[a]=false;z.manual[a]=false});
+       const To=outTemp(360,st,'clear');
+       z.s.temp=To+4; z.s.moist=64; z.s.light=0; z.s.sun=0; z.s.hour=6; if(z.kind==='barn'){z.s.nh3=6;z.s.feed=70}
+       z.s.humid=st.Hout+8; z.s.co2=z.kind==='barn'?900:450; z.s.wind=3; z.s.dir=200;
+       if(z.kind==='crop') initCropVals(z);
+       KIND[z.kind].sensors.forEach(s=>z.hist[s]=[]);
+       z.rules=defaultRules(z);
+       return z;
+     })};
+  sel=0;
+}
+function outTemp(min,st,w){
+  const h=(min/60)%24;
+  return st.Tbase+st.Tamp*Math.sin((h-9)/24*2*Math.PI)+EVENTS[w].dT;
+}
+function sunAt(min){
+  const h=(min/60)%24; return (h>6&&h<20)?Math.sin((h-6)/14*Math.PI):0;
+}
+function status(z,s,v){
+  const o=optOf(z,s);
+  if(s==='light'){
+    if(z.kind==='crop'){ if(v>o[1]+15000) return 'bad'; if(v>o[1]) return 'warn'; if(v<o[0]) return 'low'; return 'ok'; }
+    return v>=o[0]?'ok':'low';
+  }
+  if(s==='dir') return 'ok';
+  if(s==='wind') return v<7?'ok':v<10?'warn':'bad';
+  const m={temp:5,moist:12,nh3:10,feed:25,humid:12,co2:z.kind==='barn'?1000:250,soilT:5,ph:0.6,ec:0.6}[s];
+  if(v>=o[0]&&v<=o[1]) return 'ok';
+  const d=v<o[0]?o[0]-v:v-o[1];
+  return d>m?'bad':'warn';
+}
+const STATUS_TXT={ok:'적정',warn:'주의',bad:'위험',low:'부족'};
+
+function ruleTrue(z,r){const v=z.s[r.s]; return r.op==='<'?v<r.v:v>r.v;}
+
+/* ---------- 시뮬레이션 1틱 = 10분 ---------- */
+function tick(){
+  if(!G||G.over) return;
+  const st=G.st;
+  G.min+=10;
+  const m=G.min%1440;
+  if(m===0){ // 새로운 날: 날씨
+    const day=Math.floor(G.min/1440)+1;
+    let w='clear';
+    if(day>=2 && Math.random()<0.45){ w=st.events[Math.floor(Math.random()*st.events.length)]; }
+    G.weather=w;
+    addLog(`${day}일차 날씨: ${EVENTS[w].name}`,'info');
+    if(w!=='clear') addLog(EVENTS[w].msg,'bad');
+  }
+  const ev=EVENTS[G.weather], sun=sunAt(G.min)*ev.sun;
+  G.wind=clamp(G.wind+((ev.wind||3.5)-G.wind)*0.05+rnd(-0.7,0.7),0,16);
+  G.dir=(G.dir+rnd(-9,9)+360)%360;
+  const north=G.dir>315||G.dir<45;
+  const To=outTemp(G.min,st,G.weather)-(north?2:0), Hout=st.Hout||55;
+  if(G.wind>=10 && m%120===0) addLog(`강풍 ${G.wind.toFixed(1)}m/s! 천창이 열려 있으면 작물이 다칠 수 있어요.`,'bad');
+  G.zones.forEach(z=>{
+    // 제어
+    z.fire=[];
+    z.s.hour=(G.min/60)%24;
+    z.s.sun=Math.round(z.kind==='barn'? sun*600 : sun*48000*(G.st.theme==='lab'?0.68:1));
+    z.offBy={};
+    KIND[z.kind].acts.forEach(a=>{
+      const onR=z.rules.filter(r=>r.a===a&&r.on!=='OFF'), offR=z.rules.filter(r=>r.a===a&&r.on==='OFF');
+      if(z.auto&&onR.length){ z.a[a]=onR.some(r=>ruleTrue(z,r)); }
+      else z.a[a]=z.manual[a];
+      if(z.auto&&z.a[a]&&offR.some(r=>ruleTrue(z,r))){ z.a[a]=false; z.offBy[a]=true; }
+      if(z.a[a]) G.power+=ACTS[a].cost;
+    });
+    const A=z.a;
+    if(z.kind==='crop'){
+      const sh=(A.shade?0.45:1)*(G.st.theme==='lab'?0.68:1); // 실험실은 창문으로만 햇빛이 들어옴
+      const solar=sun*11*sh*(A.fan?0.4:1)*(A.window?0.7:1);
+      const k=(A.fan?0.22:0.06)+(A.window?0.08+G.wind*0.008:0);
+      z.s.temp+= (To+solar-z.s.temp)*k + (A.heater?1.3:0) + rnd(-0.08,0.08);
+      z.s.light= Math.max(0, sun*48000*sh + (A.led?(G.st.theme==='lab'?clamp(CROPS[z.crop].L[0]*1.05,16000,40000):16000):0) + (sun>0?rnd(-600,600):0));
+      z.s.moist= clamp(z.s.moist - (0.12+0.018*Math.max(0,z.s.temp-15)+0.1*sun*sh) + (A.pump?1.8:0),0,100);
+      const ex=(A.fan?0.18:0.03)+(A.window?0.08:0);
+      z.s.humid=clamp(z.s.humid+(Hout-z.s.humid)*ex+0.35*sun*sh+(A.mist?2.2:0)+(A.pump?0.3:0)-(A.heater?0.35:0)+rnd(-0.2,0.2),15,100);
+      z.s.co2=clamp(z.s.co2+(420-z.s.co2)*((A.fan?0.22:0.02)+(A.window?0.1:0))-20*sun+(sun===0?4:0)+(A.co2gen?55:0),150,3000);
+      z.s.soilT+= (z.s.temp-z.s.soilT)*0.03+(A.soilheat?0.45:0);
+      z.s.ph=clamp(z.s.ph+0.0025+(A.pump?0.006:0)-(A.acid?0.045:0)-(A.nutrient?0.008:0),4,8.5);
+      z.s.ec=clamp(z.s.ec-0.0035*(0.3+sun)-(A.pump?0.008:0)+(A.nutrient?0.055:0),0,5);
+      z.s.wind=G.wind; z.s.dir=G.dir;
+      if(A.window&&G.wind>=10){ z.health=Math.max(0,z.health-0.4); if(m%60===0) addLog(`${z.name}: 강풍에 천창이 흔들려요! 천창을 닫으세요.`,'bad'); }
+      growCrop(z);
+      if(G.st.theme==='lab') labSample(z,m,sun);
+    } else {
+      const solar=sun*5;
+      const k=A.fan?0.2:0.05;
+      z.s.temp+= (To+solar-z.s.temp)*k + (A.heater?1.0:0) + rnd(-0.08,0.08);
+      z.s.nh3 = clamp(z.s.nh3 + 0.14 - (A.fan?1.0:0), 0, 60);
+      z.s.feed= clamp(z.s.feed - 0.28 + (A.feeder?2.5:0), 0, 100);
+      z.s.light= Math.max(0, sun*600 + (A.lamp?250:0));
+      z.s.humid=clamp(z.s.humid+(Hout-z.s.humid)*(A.fan?0.18:0.03)+0.25+rnd(-0.2,0.2),15,100);
+      z.s.co2=clamp(z.s.co2+10+(420-z.s.co2)*(A.fan?0.3:0.02),300,6000);
+      z.s.wind=G.wind; z.s.dir=G.dir;
+      if(z.s.light>=150) z.lightHrs+=1/6;
+      const fT=status(z,'temp',z.s.temp)==='ok'?1:status(z,'temp',z.s.temp)==='warn'?0.6:0.2;
+      const fN=z.s.nh3<=15?1:z.s.nh3<=25?0.55:0.15;
+      const fF=z.s.feed>=20?1:z.s.feed>0?0.5:0;
+      const fC=z.s.co2>3000?0.7:1, fH=z.s.humid>85?0.85:1;
+      z.cond+= (100*fT*fN*fF*fC*fH - z.cond)*0.03;
+      G.compost+=0.008;
+      if(m===360){
+        const lf=Math.min(1,z.lightHrs/14);
+        G.eggAcc+= 5*(z.cond/100)*lf*0.95;
+        const n=Math.floor(G.eggAcc); G.eggAcc-=n; G.eggs+=n;
+        addLog(`닭 5마리가 달걀 ${n}개를 낳았어요. (컨디션 ${Math.round(z.cond)}%, 빛 ${z.lightHrs.toFixed(1)}시간)`, n>=3?'good':'info');
+        if(z.lightHrs<14) addLog('닭은 하루 14시간 정도 빛이 있어야 알을 잘 낳아요. 조도 센서와 축사 조명을 활용하세요.','info');
+        z.lightHrs=0;
+      }
+      if(z.s.nh3>25 && m%120===0) addLog('닭장 암모니아 농도가 너무 높아요! 환풍기를 켜세요.','bad');
+      if(z.s.feed<=0 && m%120===0) addLog('사료가 떨어졌어요! 급이기를 작동하세요.','bad');
+    }
+    KIND[z.kind].sensors.forEach(s=>{const h=z.hist[s];h.push(z.s[s]);if(h.length>144)h.shift();});
+  });
+  checkGoal();
+  if(G.zones.includes(G.zones[sel])) updateUI();
+}
+function growCrop(z){
+  const c=CROPS[z.crop], s=z.s;
+  const fT = (s.temp>=c.T[0]&&s.temp<=c.T[1])?1:Math.max(0,1-(s.temp<c.T[0]?c.T[0]-s.temp:s.temp-c.T[1])/8);
+  const fM = (s.moist>=c.M[0]&&s.moist<=c.M[1])?1:Math.max(0,1-(s.moist<c.M[0]?c.M[0]-s.moist:s.moist-c.M[1])/20);
+  const fL = s.light<c.L[0]? s.light/c.L[0] : s.light<=c.L[1]?1: Math.max(0,1-(s.light-c.L[1])/20000);
+  const st=['temp','moist'].map(k=>status(z,k,s[k])); const sl=status(z,'light',s.light);
+  let dh=0;
+  st.forEach(x=>{ if(x==='bad') dh-=0.6; else if(x==='warn') dh-=0.12; });
+  if(sl==='bad') dh-=0.3; else if(sl==='warn') dh-=0.05;
+  let fx=1;
+  ['humid','co2','soilT','ph','ec'].forEach(k=>{ const x=status(z,k,s[k]); if(x==='warn') fx*=0.94; if(x==='bad'){ fx*=0.82; if(k!=='co2') dh-=0.12; } });
+  if(dh===0) dh=0.15;
+  z.health=clamp(z.health+dh,0,100);
+  G.healthSum+=z.health; G.healthN++;
+  if(z.boost>0) z.boost--;
+  if(G.st.id===2 && G.harvested) return;
+  z.growth+= c.rate*fT*fM*fL*fx*(z.boost>0?1.35:1)*(0.4+0.6*z.health/100);
+  if(z.health<=0){
+    if(G.st.id===3){
+      addLog(`${z.name}: 작물이 모두 시들었어요. 새 모종을 심었습니다. (모종값 50,000원)`, 'bad');
+      G.revenue-=50000; z.growth=0; z.health=60;
+    } else { endGame(false,'작물이 시들어 버렸어요. 센서 값이 빨간색(위험)일 때 빨리 장치를 조작해야 해요.'); }
+  }
+  if(z.growth>=100){
+    if(G.st.id===3){
+      const q=0.5+0.5*z.health/100, earn=c.price*q;
+      G.revenue+=earn; G.harvests++;
+      addLog(`${z.name} 수확! 품질 ${Math.round(q*100)}% → ${won(earn)} 판매`,'good');
+      z.growth=0;
+    } else { z.growth=100; if(!G.harvested){G.harvested=true; addLog('상추 수확 완료! 싱싱한 상추를 얻었어요.','good');} }
+  }
+}
+function profit(){ return G.revenue-G.power; }
+function checkGoal(){
+  if(G.over) return;
+  const st=G.st, day=Math.floor(G.min/1440)+1;
+  if(st.id===1 && G.harvested) return endGame(true);
+  if(st.id===2 && G.harvested && G.eggs>=12) return endGame(true);
+  if(st.id===3){
+    if(profit()>=st.target) return endGame(true);
+    if(st.startMoney+profit()<0) return endGame(false,'잔고가 바닥났어요. 전기요금을 아끼는 규칙을 고민해 보세요.');
+  }
+  if(G.min>=360+st.days*1440) endGame(false,'제한 시간이 끝났어요.');
+}
+function stars(win){
+  if(!win) return 0;
+  let s=1; const avgH=G.healthN?G.healthSum/G.healthN:100;
+  if(avgH>=75) s++;
+  if(G.st.id===3){ if(profit()>=G.st.target*1.2) s++; } else if(G.power<=G.st.budget) s++;
+  return s;
+}
+function endGame(win,why){
+  G.over=true; setSpeed(0,true);
+  const s=stars(win), avgH=G.healthN?G.healthSum/G.healthN:100;
+  if(win){ progress[G.st.id]=Math.max(progress[G.st.id]||0,s); saveProgress(); }
+  const day=Math.min(G.st.days,Math.floor((G.min-1)/1440)+1);
+  const st=G.st;
+  let stats=`<div>걸린 시간<b>${day}일</b></div><div>평균 작물 건강도<b>${Math.round(avgH)}%</b></div><div>전기요금<b>${won(G.power)}</b></div>`;
+  if(st.id===2) stats+=`<div>달걀<b>${G.eggs}개</b></div>`;
+  else if(st.id===3) stats+=`<div>순이익<b>${won(profit())}</b></div>`;
+  else stats+=`<div>${CROPS[G.zones[0].crop].name} 생장률<b>${Math.round(G.zones[0].growth)}%</b></div><div>환경 적합도<b>${labFit()}%</b></div>`;
+  const starHtml=[1,2,3].map(i=>i<=s?'★':'<span class="off">★</span>').join('');
+  const tip = st.id===3?'★ 조건: 성공 / 평균 건강도 75% 이상 / 순이익 108만 원 이상':`★ 조건: 성공 / 평균 건강도 75% 이상 / 전기요금 ${won(st.budget)} 이하`;
+  showModal(`
+    <h2>${win?'미션 성공!':'미션 실패'}</h2>
+    ${win?`<div class="big-stars" aria-label="별 ${s}개">${starHtml}</div>`:''}
+    <p>${win?reflection():why}</p>
+    <div class="stats">${stats}</div>
+    <p class="hint">${tip}</p>
+    <div class="btns">
+      <button class="btn" data-m="menu">스테이지 선택</button>
+      <button class="btn" data-m="retry">다시 하기</button>
+      ${win&&G.idx<2?'<button class="btn primary" data-m="next">다음 스테이지</button>':''}
+    </div>`);
+}
+function reflection(){
+  const autoUsed=G.zones.some(z=>z.auto);
+  if(!autoUsed) return '수동 조작만으로 해냈어요! 이번엔 자동제어 규칙을 켜고 전기요금을 얼마나 줄일 수 있는지 비교해 보세요.';
+  return '자동제어 규칙이 농장을 지켰어요. 규칙의 기준값(임계값)을 바꾸면 전기요금과 건강도가 어떻게 달라지는지 실험해 보세요.';
+}
+
+/* ---------- 로그 ---------- */
+function stamp(){const d=Math.floor(G.min/1440)+1,m=G.min%1440;return `${d}일 ${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`}
+function addLog(t,type){ G.log.unshift({t:stamp(),msg:t,type}); if(G.log.length>60)G.log.pop(); renderLog(); }
+function renderLog(){ $('#log').innerHTML=G.log.map(l=>`<li><time>${l.t}</time><span class="e-${l.type}">${l.msg}</span></li>`).join(''); }
+
+/* ---------- UI ---------- */
+function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+function renderMenu(){
+  $('#stageList').innerHTML=STAGES.map((s,i)=>{
+    const p=progress[s.id]||0;
+    return `<article class="stage">
+      <span class="lv">Stage ${s.id} · ${s.season}</span>
+      <h3>${s.title}</h3>
+      <p>${s.sub}</p>
+      <ul>${s.bullets.map(b=>`<li>${b}</li>`).join('')}</ul>
+      <div class="foot"><span class="stars" aria-label="획득한 별 ${p}개">${[1,2,3].map(k=>k<=p?'★':'<span class="off">★</span>').join('')}</span>
+      <button class="btn primary" data-start="${i}">시작하기</button></div>
+    </article>`}).join('');
+}
+function showScreen(name){
+  if(name==='menu') document.documentElement.classList.remove('factory','farm');
+  $('#menu').hidden=name!=='menu'; $('#game').hidden=name!=='game'; $('#hud').hidden=name!=='game';
+}
+function startStage(i){
+  newGame(i); showScreen('game');
+  document.documentElement.classList.toggle('factory',G.st.theme==='factory');
+  document.documentElement.classList.toggle('farm',G.st.theme==='farm');
+  $('#moneyChip').hidden=G.st.id!==3;
+  const st=G.st;
+  $('#goalTitle').textContent=`Stage ${st.id} · ${st.title}`;
+  buildTabs(); buildZone();
+  addLog(`${st.title} 시작! 계절: ${st.season}, 제한 ${st.days}일`,'info');
+  setSpeed(0,true);
+  $('#labPanel').hidden=st.theme!=='lab';
+  if(st.theme==='lab'){ G.lab={rows:[],fitSum:0,fitN:0}; showPlantPicker(labPlant); }
+  else showIntro();
+}
+function showIntro(){
+  const st=G.st;
+  const tips={
+    1:['선택한 식물의 조사값으로 <b>자동제어 규칙 20개가 세팅</b>되었어요. 규칙의 기준값을 바꿔 가며 실험해 보세요.','아래 <b>재배 조건표</b>에서 8가지 조건(온도·습도·빛·CO₂·토양 수분·토양 온도·pH·EC)이 맞는지 확인하세요.','<b>실험 데이터</b>는 1시간마다 자동으로 기록돼요. CSV로 복사해 엑셀에서 그래프를 그려 보세요.','<b>환경 적합도</b>가 높을수록 식물이 빨리 자라요.'],
+    2:['<b>닭장</b> 탭으로 바꿔 닭의 환경도 함께 관리해야 해요.','닭똥에서 나오는 <b>암모니아</b>가 15ppm을 넘으면 환풍기로 빼 주세요.','<b>사료량</b>이 떨어지면 급이기를 작동하세요.','닭장에서 모인 <b>퇴비</b>를 상추 온실에 주면 하루 동안 1.35배 빨리 자라요.'],
+    3:['겨울이라 세 라인 모두 <b>공조기(히터)</b>가 중요해요. 대신 전기요금이 많이 나와요.','위쪽 <b>라인 현황판</b>을 눌러 라인을 바꾸고, 빨간 램프가 켜진 라인부터 살피세요.','작물마다 적정 온도·수분·빛이 달라요. 센서 카드의 <b>적정 범위</b>를 확인하세요.','밤에 <b>LED</b>를 켜면 더 빨리 자라지만 전기요금이 올라요. 판매 가격과 비교해 보세요.','작물이 100% 자라면 자동으로 수확돼 컨베이어로 출하되고 새로 심어요.']
+  }[st.id];
+  showModal(`<h2>${st.title}</h2>
+    <p><b>목표:</b> ${goalText()}</p>
+    <ol>${tips.map(t=>`<li>${t}</li>`).join('')}</ol>
+    <p class="hint">1틱 = 게임 속 10분. 속도 버튼(×1·×2·×4)과 일시정지로 시간을 조절할 수 있어요.</p>
+    <div class="btns"><button class="btn primary" data-m="go">농장 가동!</button></div>`);
+}
+function goalText(){
+  const st=G.st;
+  return {1:`${st.days}일 안에 ${CROPS[G.zones[0].crop].name} 생장률 100% 만들기 (조사한 재배 조건으로 환경 세팅)`,2:`${st.days}일 안에 상추 수확 + 달걀 12개 모으기`,3:`${st.days}일 안에 순이익 ${won(st.target)} 만들기`}[st.id];
+}
+function buildTabs(){
+  const t=$('#tabs');
+  if(G.zones.length<2){t.innerHTML='';t.hidden=true;return}
+  t.hidden=false;
+  if(G.st.theme==='factory'){
+    t.className='lines';
+    t.innerHTML=G.zones.map((z,i)=>`<button class="line" role="tab" aria-selected="${i===sel}" data-zone="${i}">
+      <span class="lh"><span class="lamp" id="dot${i}"></span>LINE ${z.code} · ${CROPS[z.crop].name.toUpperCase()}</span>
+      <span class="ln" id="ln${i}">가동 중</span>
+      <span class="lb"><i id="lg${i}" style="width:0%"></i></span>
+      <span class="lk"><span>생장 <b id="lgv${i}">0%</b></span><span>건강 <b id="lhv${i}">100%</b></span><span>가동 장치 <b id="lav${i}">0</b></span></span>
+    </button>`).join('');
+    return;
+  }
+  t.className='tabs';
+  t.innerHTML=G.zones.map((z,i)=>`<button role="tab" aria-selected="${i===sel}" data-zone="${i}">${z.name}<span class="dot" id="dot${i}"></span></button>`).join('');
+}
+function buildZone(){
+  const z=G.zones[sel];
+  $('#sensors').innerHTML=KIND[z.kind].sensors.map(s=>{
+    const o=optOf(z,s), S=SENS[s];
+    const optTxt = s==='light'&&z.kind==='barn' ? `${o[0]}lx 이상 = 빛 있는 시간` : `적정 ${fmt(o[0],S.d)}~${fmt(o[1],S.d)}${S.unit}`;
+    return `<div class="sc" id="sc-${s}" style="border-left-color:var(${S.color})">
+      <span class="nm">${S.name} <span class="pill ok" id="pill-${s}">적정</span></span>
+      <canvas id="sp-${s}" width="300" height="54"></canvas>
+      <span class="val" id="val-${s}">-</span>
+      <span class="opt">${optTxt}</span>
+    </div>`}).join('')+`<div class="xs-h">추가 환경 센서</div><div class="xs-grid">${KIND[z.kind].extra.map(s=>{const o=optOf(z,s),S=SENS[s];
+      const ot= s==='dir'?'바람이 불어오는 쪽': s==='wind'?'7m/s 미만 안전':`적정 ${fmt(o[0],S.d)}~${fmt(o[1],S.d)}`;
+      return `<div class="xs"><span class="xn">${S.name} <span class="pill ok" id="xp-${s}">적정</span></span><b id="xv-${s}">-</b><span class="xo">${ot}</span></div>`;}).join('')}</div>`;
+  $('#acts').innerHTML=KIND[z.kind].acts.map(a=>`<button class="act" data-act="${a}" aria-pressed="false">
+      <span class="sw" aria-hidden="true"></span>
+      <span class="an">${ACTS[a].name}</span><span class="ad">${ACTS[a].desc} · ${ACTS[a].cost}원/10분</span>
+      <span class="auto" id="auto-${a}"></span></button>`).join('');
+  renderRules(); renderLog(); updateUI();
+}
+function fmt(v,d){return d?v.toFixed(d):Math.round(v).toLocaleString('ko-KR')}
+function renderRules(){
+  const z=G.zones[sel];
+  $('#autoToggle').setAttribute('aria-checked',z.auto);
+  $('#autoLbl').textContent=z.auto?'자동제어 ON':'자동제어 OFF';
+  const so=ruleSensors(z).map(s=>[s,SENS[s].name]), ao=KIND[z.kind].acts.map(a=>[a,ACTS[a].name]);
+  const opt=(list,v)=>list.map(([k,n])=>`<option value="${k}"${k===v?' selected':''}>${n}</option>`).join('');
+  $('#rules').innerHTML=z.rules.length?z.rules.map((r,i)=>`<div class="rule" id="rule${i}">
+    <span class="kw">IF</span>
+    <select id="rs${sel}-${i}" data-ri="${i}" data-f="s" aria-label="센서">${opt(so,r.s)}</select>
+    <select id="ro${sel}-${i}" data-ri="${i}" data-f="op" aria-label="비교">${opt([['<','<  보다 작으면'],['>','>  보다 크면']],r.op)}</select>
+    <input id="rv${sel}-${i}" data-ri="${i}" data-f="v" type="number" step="${(r.s==='light'||r.s==='sun')&&z.kind==='crop'?1000:(r.s==='ph'||r.s==='ec')?0.1:1}" value="${r.v}" aria-label="기준값">
+    <span>${SENS[r.s].unit}</span>
+    <span class="kw">THEN</span>
+    <select id="ra${sel}-${i}" data-ri="${i}" data-f="a" aria-label="장치">${opt(ao,r.a)}</select>
+    <select id="rn${sel}-${i}" data-ri="${i}" data-f="on" aria-label="켜기 또는 끄기" class="onoff ${r.on==='OFF'?'off':''}">${opt([['ON','ON (켜기)'],['OFF','OFF (끄기)']],r.on||'ON')}</select>
+    ${r.n?`<span class="rn">${r.n}</span>`:''}
+    <button class="x" data-del="${i}" aria-label="규칙 삭제">×</button></div>`).join('')
+    :'<p class="hint">규칙이 없습니다. "+ 규칙 추가"를 눌러 만들어 보세요.</p>';
+}
+function updateUI(){
+  if(!G) return;
+  renderCond();
+  const d=Math.floor(G.min/1440)+1, m=G.min%1440;
+  $('#clock').innerHTML=`${Math.min(d,G.st.days)}일차 / ${G.st.days}일 <b>${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}</b>`;
+  $('#power').textContent=won(G.power);
+  if(G.st.id===3) $('#money').textContent=won(G.st.startMoney+profit());
+  const ev=EVENTS[G.weather];
+  $('#weather').innerHTML=`<span>날씨 <b>${ev.name}</b></span><span>바깥 기온 <b>${outTemp(G.min,G.st,G.weather).toFixed(1)}°C</b></span><span>계절 <b>${G.st.season}</b></span><span>바람 <b>${dirName(G.dir)}풍 ${G.wind.toFixed(1)}m/s</b></span>`;
+  // goal
+  const st=G.st; let gp='';
+  if(st.id===1) gp=`<span>${CROPS[G.zones[0].crop].name} 생장률 <b>${Math.floor(G.zones[0].growth)}%</b></span><span>환경 적합도 <b>${labFit()}%</b></span><span>수집 데이터 <b>${(G.lab&&G.lab.rows.length)||0}건</b></span>`;
+  if(st.id===2) gp=`<span>상추 <b>${G.harvested?'수확 완료':Math.floor(G.zones[0].growth)+'%'}</b></span><span>달걀 <b>${G.eggs} / 12개</b></span><span>퇴비 <b>${Math.floor(G.compost)}포대</b></span>`;
+  if(st.id===3) gp=`<span>매출 <b>${won(G.revenue)}</b></span><span>순이익 <b>${won(profit())}</b> / ${won(st.target)}</span><span>수확 <b>${G.harvests}회</b></span>`;
+  $('#goalProg').innerHTML=gp;
+  // tab dots
+  G.zones.forEach((z,i)=>{const el=$('#dot'+i); if(!el) return;
+    const worst=KIND[z.kind].sensors.map(s=>status(z,s,z.s[s])).reduce((a,b)=>b==='bad'?'bad':(b==='warn'&&a!=='bad')?'warn':a,'ok');
+    const col=`var(--${worst==='bad'?'bad':worst==='warn'?'warn':'ok'})`;
+    el.style.background=col; el.style.color=col;
+    if(G.st.theme==='factory'){
+      $('#lg'+i).style.width=clamp(z.growth,0,100)+'%';
+      $('#lgv'+i).textContent=Math.floor(z.growth)+'%';
+      $('#lhv'+i).textContent=Math.round(z.health)+'%';
+      $('#lav'+i).textContent=Object.values(z.a).filter(Boolean).length;
+      $('#ln'+i).textContent=worst==='bad'?'이상 발생 · 점검 필요':worst==='warn'?'주의 · 환경 조정 중':'정상 가동';
+    }});
+  const z=G.zones[sel];
+  KIND[z.kind].sensors.forEach(s=>{
+    const S=SENS[s], v=z.s[s], stt=status(z,s,v);
+    const ve=$('#val-'+s); if(!ve) return;
+    ve.innerHTML=`${fmt(v,S.d)}<small>${S.unit}</small>`;
+    const p=$('#pill-'+s); p.className='pill '+stt; p.textContent=STATUS_TXT[stt];
+    spark($('#sp-'+s),z.hist[s],scaleOf(z,s),optOf(z,s),cssv(S.color));
+  });
+  KIND[z.kind].extra.forEach(s=>{ const v=$('#xv-'+s); if(!v) return; v.textContent=fmtS(s,z.s[s]); const st=status(z,s,z.s[s]); const p=$('#xp-'+s); p.className='pill '+st; p.textContent=s==='dir'?dirName(z.s[s])+'풍':STATUS_TXT[st]; });
+  KIND[z.kind].acts.forEach(a=>{
+    const b=document.querySelector(`[data-act="${a}"]`); if(!b) return;
+    const ruled=z.auto&&z.rules.some(r=>r.a===a&&r.on!=='OFF');
+    b.setAttribute('aria-pressed',z.a[a]); b.disabled=ruled;
+    $('#auto-'+a).textContent=(z.offBy&&z.offBy[a])?'OFF 규칙으로 꺼짐':ruled?'규칙으로 자동 제어 중':'';
+  });
+  z.rules.forEach((r,i)=>{const el=$('#rule'+i); if(!el) return; const on=z.auto&&ruleTrue(z,r); el.classList.toggle('fire',on&&r.on!=='OFF'); el.classList.toggle('fire-off',on&&r.on==='OFF');});
+  const rc=$('#ruleCount'); if(rc) rc.textContent=`규칙 ${z.rules.length}개 · 지금 작동 ${z.auto?z.rules.filter(r=>ruleTrue(z,r)).length:0}개`;
+  // status meters
+  if(z.kind==='crop'){
+    const c=CROPS[z.crop];
+    $('#status').innerHTML=meter('생장률',Math.floor(z.growth)+'%',z.growth,'var(--leaf)')+meter('작물 건강도',Math.round(z.health)+'%',z.health,z.health<40?'var(--bad)':z.health<70?'var(--warn)':'var(--leaf)')
+      +(st.id===3?`<div class="meter"><div class="row"><span>${c.name} 판매가</span><b>${won(c.price)}</b></div><div class="hint" style="margin:2px 0 0">건강도가 높을수록 제값을 받아요</div></div>`:'')
+      +(z.boost>0?meter('퇴비 효과',Math.ceil(z.boost/6)+'시간',z.boost/1.44,'var(--feed)'):'');
+  } else {
+    $('#status').innerHTML=meter('닭 컨디션',Math.round(z.cond)+'%',z.cond,z.cond<40?'var(--bad)':z.cond<70?'var(--warn)':'var(--leaf)')+meter('오늘 빛 받은 시간',z.lightHrs.toFixed(1)+' / 14시간',z.lightHrs/14*100,'var(--light)')+meter('달걀',G.eggs+'개',G.eggs/12*100,'#D9A21B');
+  }
+  // compost
+  if(st.id===2 && z.kind==='crop'){
+    $('#compostBox').innerHTML=`<div class="compost"><span>닭장 퇴비 <b>${Math.floor(G.compost)}포대</b> 보유</span><button class="btn sm" id="useCompost" ${G.compost<1||G.harvested?'disabled':''}>퇴비 1포대 주기 (24시간 생장 ×1.35)</button></div>`;
+  } else if(st.id===2){
+    $('#compostBox').innerHTML=`<div class="compost">닭장에서 퇴비가 모이고 있어요: <b>${G.compost.toFixed(1)}포대</b> — 상추 온실 탭에서 사용할 수 있어요.</div>`;
+  } else $('#compostBox').innerHTML='';
+}
+function meter(n,v,p,c){return `<div class="meter"><div class="row"><span>${n}</span><b>${v}</b></div><div class="bar"><i style="width:${clamp(p,0,100)}%;background:${c}"></i></div></div>`}
+function spark(cv,data,sc,opt,color){
+  if(!cv) return;
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth||300, h=cv.clientHeight||54;
+  if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,w,h);
+  const y=v=>h-2-(clamp(v,sc[0],sc[1])-sc[0])/(sc[1]-sc[0])*(h-4);
+  g.fillStyle=cssv('--band'); const y1=y(opt[1]),y0=y(opt[0]); g.fillRect(0,y1,w,y0-y1);
+  g.strokeStyle=cssv('--band-line'); g.setLineDash([3,3]); g.beginPath(); g.moveTo(0,y1);g.lineTo(w,y1);g.moveTo(0,y0);g.lineTo(w,y0);g.stroke(); g.setLineDash([]);
+  if(data.length<2) return;
+  const x=i=>w-(data.length-1-i)*(w/143);
+  g.beginPath(); data.forEach((v,i)=>i?g.lineTo(x(i),y(v)):g.moveTo(x(i),y(v)));
+  g.strokeStyle=color; g.lineWidth=1.8; g.stroke();
+  g.lineTo(x(data.length-1),h); g.lineTo(x(0),h); g.closePath(); g.globalAlpha=.1; g.fillStyle=color; g.fill(); g.globalAlpha=1;
+  g.beginPath(); g.arc(x(data.length-1),y(data[data.length-1]),3,0,7); g.fillStyle=color; g.fill();
+}
+
+/* ---------- 그림 ---------- */
+let anim=0;
+function skyColors(min,wx){
+  const h=(min/60)%24; const cloudy=wx==='cloud';
+  if(h<5||h>=21) return ['#14213A','#26375A'];
+  if(h<7) return ['#3E4E78','#F0AE86'];
+  if(h>=19) return ['#43507E','#EE9E73'];
+  return cloudy?['#9AA9B2','#CBD3D7']:['#7EC3E6','#D7EEF6'];
+}
+function drawScene(cv,z,min,wx,t,theme){
+  const dpr=window.devicePixelRatio||1, w=cv.clientWidth, h=cv.clientHeight;
+  if(!w) return;
+  if(cv.width!==Math.round(w*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}
+  const g=cv.getContext('2d'); g.setTransform(dpr,0,0,dpr,0,0);
+  if(z.kind==='crop'&&theme==='lab'){ g.clearRect(0,0,w,h); drawLab(g,z,w,h,min,wx,t); fog(g,z,w,h,t); return; }
+  if(z.kind==='crop'&&theme==='factory'){ g.clearRect(0,0,w,h); drawFactory(g,z,w,h,min,wx,t); fog(g,z,w,h,t); return; }
+  if(z.kind==='barn'){ g.clearRect(0,0,w,h); drawCuteBarn(g,z,w,h,min,wx,t); return; }
+  const [s1,s2]=skyColors(min,wx); const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,s1); gr.addColorStop(1,s2);
+  g.fillStyle=gr; g.fillRect(0,0,w,h);
+  const hr=(min/60)%24, sun=sunAt(min);
+  // sun / moon
+  if(sun>0){const a=(hr-6)/14*Math.PI; g.fillStyle=wx==='cloud'?'rgba(255,240,200,.6)':'#FFD65A'; g.beginPath(); g.arc(w*0.5-Math.cos(a)*w*0.42, h*0.62-Math.sin(a)*h*0.5, 16,0,7); g.fill();}
+  else {g.fillStyle='#EDEFF7'; g.beginPath(); g.arc(w*0.82,h*0.14,11,0,7); g.fill(); g.fillStyle=s1; g.beginPath(); g.arc(w*0.82+5,h*0.14-3,10,0,7); g.fill();
+    g.fillStyle='rgba(255,255,255,.7)'; for(let i=0;i<14;i++){g.fillRect((i*97)%w,(i*53)%(h*0.35),1.5,1.5);} }
+  if(wx==='cloud'){g.fillStyle='rgba(255,255,255,.75)'; [[0.2,0.12],[0.55,0.08],[0.8,0.18]].forEach(([cx,cy],i)=>{const x=(cx*w+t*0.01*(i+1))%(w+80)-40; g.beginPath(); g.ellipse(x,cy*h,40,13,0,0,7); g.ellipse(x+25,cy*h-8,26,12,0,0,7); g.fill();});}
+  // ground
+  const gy=h*0.8; g.fillStyle='#8FB27A'; g.fillRect(0,gy-6,w,h); g.fillStyle='#6E5238'; g.fillRect(0,gy+8,w,h);
+  const x0=w*0.06,x1=w*0.94,top=h*0.14;
+  if(z.kind==='crop') drawGreenhouse(g,z,w,h,x0,x1,top,gy,t); else drawBarn(g,z,w,h,x0,x1,top,gy,t);
+  // night dim
+  if(sun===0){ g.fillStyle='rgba(10,20,40,.25)'; g.fillRect(0,0,w,h); }
+  // glow overlays after dim
+  if(z.kind==='crop'&&z.a.led){ const lg=g.createLinearGradient(0,top+30,0,gy); lg.addColorStop(0,'rgba(230,90,200,.35)'); lg.addColorStop(1,'rgba(230,90,200,0)'); g.fillStyle=lg; g.fillRect(x0+8,top+30,x1-x0-16,gy-top-30);
+    g.fillStyle='#F2A6E6'; g.fillRect(w*0.25,top+34,w*0.5,5);}
+  if(z.kind==='barn'&&z.a.lamp){ const lg=g.createRadialGradient(w*0.5,top+40,5,w*0.5,top+40,w*0.4); lg.addColorStop(0,'rgba(255,220,130,.45)'); lg.addColorStop(1,'rgba(255,220,130,0)'); g.fillStyle=lg; g.fillRect(0,0,w,h); g.fillStyle='#FFE08A'; g.beginPath(); g.arc(w*0.5,top+40,7,0,7); g.fill();}
+  // sensor probes labels
+  const probes=KIND[z.kind].sensors.map((s,i)=>({s,x:x0+30+i*((x1-x0-60)/(KIND[z.kind].sensors.length-1||1))}));
+  g.font='600 11px "IBM Plex Mono",monospace';
+  probes.forEach(p=>{
+    const S=SENS[p.s], col=cssv(S.color), txt=`${fmt(z.s[p.s],S.d)}${S.unit}`;
+    const y= p.s==='moist'?gy+2: p.s==='light'?top+52:gy-40;
+    g.fillStyle='#333'; g.fillRect(p.x-1,y,2,p.s==='moist'?12:gy-y);
+    const tw=g.measureText(txt).width+12; g.fillStyle='rgba(255,255,255,.92)'; g.strokeStyle=col; g.lineWidth=2;
+    roundRect(g,p.x-tw/2,y-20,tw,17,4); g.fill(); g.stroke(); g.fillStyle=col; g.textAlign='center'; g.fillText(txt,p.x,y-7.5);
+  });
+  fog(g,z,w,h,t); g.textAlign='left';
+}
+function fog(g,z,w,h,t){ if(!z.a||!z.a.mist) return; g.fillStyle='rgba(255,255,255,.16)'; g.fillRect(0,0,w,h); g.fillStyle='rgba(255,255,255,.22)'; for(let i=0;i<6;i++){ const x=((t*0.02+i*w/6)%(w+100))-50, y=h*(0.35+0.08*(i%3)); g.beginPath(); g.ellipse(x,y,70,16,0,0,7); g.fill(); } }
+function roundRect(g,x,y,w,h,r){g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();}
+function drawGreenhouse(g,z,w,h,x0,x1,top,gy,t){
+  // arch
+  g.beginPath(); g.moveTo(x0,gy); g.lineTo(x0,top+50); g.quadraticCurveTo(w/2,top-30,x1,top+50); g.lineTo(x1,gy); g.closePath();
+  g.fillStyle='rgba(235,248,240,.32)'; g.fill(); g.strokeStyle='#E8F2EA'; g.lineWidth=3; g.stroke();
+  g.strokeStyle='rgba(255,255,255,.5)'; g.lineWidth=1.2;
+  for(let i=1;i<6;i++){const x=x0+(x1-x0)*i/6; g.beginPath(); g.moveTo(x,gy); g.lineTo(x,top+50-Math.sin(i/6*Math.PI)*62); g.stroke();}
+  if(z.a.shade){ g.fillStyle='rgba(40,50,45,.55)'; for(let i=0;i<14;i++){const x=x0+(x1-x0)*i/14; const yy=top+50-Math.sin((i+.5)/14*Math.PI)*64; g.fillRect(x+2,yy-2,(x1-x0)/14-4,8);} }
+  // bed
+  g.fillStyle='#5A4230'; g.fillRect(x0+14,gy-4,x1-x0-28,14);
+  const wet=z.s.moist/100; g.fillStyle=`rgba(30,40,70,${wet*0.45})`; g.fillRect(x0+14,gy-4,x1-x0-28,14);
+  // plants
+  for(let i=0;i<6;i++){ const px=x0+40+(x1-x0-80)*i/5; drawPlant(g,z,px,gy-6,(6+clamp(z.growth,0,100)/100*26)*(w/640+0.35),i,t); }
+  // devices
+  const hx=x0+20, hy=gy-34;
+  g.fillStyle=z.a.heater?'#E56A30':'#9B8F86'; roundRect(g,hx,hy,30,22,4); g.fill();
+  if(z.a.heater){const hg=g.createRadialGradient(hx+15,hy+11,4,hx+15,hy+11,60); hg.addColorStop(0,'rgba(255,130,60,.45)'); hg.addColorStop(1,'rgba(255,130,60,0)'); g.fillStyle=hg; g.fillRect(hx-50,hy-50,130,120);}
+  g.strokeStyle='#fff'; g.lineWidth=1.5; for(let i=0;i<3;i++){g.beginPath(); g.moveTo(hx+7+i*8,hy+5); g.lineTo(hx+7+i*8,hy+17); g.stroke();}
+  drawFan(g,x1-80,top+105,15,z.a.fan,t);
+  // pump pipe & drops
+  g.strokeStyle='#5E7C8C'; g.lineWidth=3; g.beginPath(); g.moveTo(x0+60,top+70); g.lineTo(x1-60,top+70); g.stroke();
+  if(z.a.pump){ g.fillStyle='rgba(60,140,220,.85)'; for(let i=0;i<24;i++){const x=x0+70+(x1-x0-140)*(i%12)/11; const y=top+74+((t/6+i*37)%(gy-top-80)); g.fillRect(x,y,2,6);} }
+}
+function plantCols(z){const hl=z.health/100;return [`hsl(${40+hl*85},${45+hl*15}%,${32+hl*6}%)`,`hsl(${45+hl*85},${50+hl*10}%,${44+hl*6}%)`];}
+function drawPlant(g,z,px,gy,sz,i,t,maxH){
+  const c=CROPS[z.crop]||{}, shape=c.shape||'leafy', fc=c.fruit||'#DB3B26';
+  const gr=clamp(z.growth,0,100)/100, [leaf,leaf2]=plantCols(z), sway=Math.sin(t/900+i)*(z.a.fan?3:0.8);
+  const ripe=gr>0.8;
+  if(shape==='leafy'||shape==='root'){
+    const lc=z.crop.startsWith('p_')&&shape==='leafy'?fc:null;
+    for(let k=0;k<7;k++){const a=k/7*Math.PI-Math.PI; g.fillStyle=k%2?(lc||leaf):leaf2; g.beginPath(); g.ellipse(px+Math.cos(a)*sz*0.45+sway,gy+Math.sin(a)*sz*0.5,sz*0.45,sz*0.28,a,0,7); g.fill();}
+    if(shape==='root'&&gr>0.4){ g.fillStyle=fc; g.beginPath(); g.ellipse(px,gy+3,sz*0.22*gr+2,sz*0.14*gr+2,0,0,7); g.fill(); g.strokeStyle='rgba(0,0,0,.15)'; g.lineWidth=1; g.stroke(); }
+  }
+  else if(shape==='berry'){ for(let k=0;k<5;k++){const a=-Math.PI*(0.15+0.7*k/4); g.fillStyle=k%2?leaf:leaf2; g.beginPath(); g.ellipse(px+Math.cos(a)*sz*0.5+sway,gy+Math.sin(a)*sz*0.55,sz*0.3,sz*0.2,a,0,7); g.fill();}
+    if(gr>0.55){g.fillStyle=ripe?fc:'#E9C4B0'; [[-.5,.05],[.45,.1],[0,.2]].forEach(([dx,dy])=>{g.beginPath(); g.ellipse(px+dx*sz,gy+2+dy*sz,sz*0.12,sz*0.15,0,0,7); g.fill();});} }
+  else if(shape==='melon'){ for(let k=0;k<6;k++){const a=-Math.PI*(0.05+0.9*k/5); g.fillStyle=k%2?leaf:leaf2; g.beginPath(); g.ellipse(px+Math.cos(a)*sz*0.7+sway,gy+Math.sin(a)*sz*0.35,sz*0.32,sz*0.22,a,0,7); g.fill();}
+    g.strokeStyle=leaf; g.lineWidth=2; g.beginPath(); g.moveTo(px-sz,gy+2); g.quadraticCurveTo(px,gy-sz*0.3,px+sz,gy+2); g.stroke();
+    if(gr>0.45){ const r=sz*0.18+sz*0.28*(gr-0.45); g.fillStyle=ripe?fc:'#9CCB6A'; g.beginPath(); g.ellipse(px+sz*0.35,gy+2-r*0.6,r*1.15,r*0.9,0,0,7); g.fill(); g.strokeStyle='rgba(255,255,255,.35)'; g.lineWidth=1; g.stroke(); } }
+  else if(shape==='bush'){ let H=sz*1.8; if(maxH) H=Math.min(H,maxH); g.strokeStyle='#7A5A3A'; g.lineWidth=3; g.beginPath(); g.moveTo(px,gy+6); g.lineTo(px,gy-H*0.4); g.stroke();
+    for(let k=0;k<6;k++){ const a=k/6*Math.PI*2; g.fillStyle=k%2?leaf:leaf2; g.beginPath(); g.arc(px+Math.cos(a)*sz*0.35+sway,gy-H*0.55+Math.sin(a)*sz*0.3,sz*0.3,0,7); g.fill(); }
+    if(gr>0.5){ g.fillStyle=ripe?fc:'#A5C98A'; for(let k=0;k<5;k++){ g.beginPath(); g.arc(px-sz*0.3+k*sz*0.15+sway,gy-H*0.35+(k%2)*5,sz*0.07+1.5,0,7); g.fill(); } } }
+  else if(shape==='palm'){ let H=sz*2; if(maxH) H=Math.min(H,maxH); g.fillStyle='#8FAF5A'; g.fillRect(px-3,gy-H*0.6,6,H*0.6+6);
+    for(let k=0;k<5;k++){ const a=-Math.PI*(0.1+0.8*k/4); g.fillStyle=k%2?leaf:leaf2; g.beginPath(); g.ellipse(px+Math.cos(a)*sz*0.6+sway,gy-H*0.6+Math.sin(a)*sz*0.45,sz*0.6,sz*0.16,a,0,7); g.fill(); }
+    if(gr>0.55){ g.fillStyle=ripe?fc:'#9CCB6A'; for(let k=0;k<4;k++){ g.beginPath(); g.ellipse(px+5,gy-H*0.5+k*5,sz*0.12,sz*0.05,0.4,0,7); g.fill(); } } }
+  else if(shape==='rosette'){ for(let k=0;k<9;k++){ const a=-Math.PI*(0.05+0.9*k/8); g.strokeStyle=k%2?leaf:leaf2; g.lineWidth=3; g.beginPath(); g.moveTo(px,gy+2); g.lineTo(px+Math.cos(a)*sz*0.8+sway*0.5,gy+Math.sin(a)*sz*0.8); g.stroke(); }
+    if(gr>0.5){ const r=sz*0.12+sz*0.18*(gr-0.5); g.fillStyle=ripe?fc:'#8DBA4A'; g.beginPath(); g.ellipse(px,gy-sz*0.55,r*0.8,r*1.2,0,0,7); g.fill(); g.strokeStyle='#4E7D2A'; g.lineWidth=2; for(let k=0;k<3;k++){ g.beginPath(); g.moveTo(px,gy-sz*0.55-r*1.1); g.lineTo(px+(k-1)*5,gy-sz*0.55-r*1.1-8); g.stroke(); } } }
+  else { let H=sz*2.2; if(maxH) H=Math.min(H,maxH); g.strokeStyle='#A08058'; g.lineWidth=2; g.beginPath(); g.moveTo(px+10,gy+6); g.lineTo(px+10,gy-H); g.stroke();
+    g.strokeStyle=leaf; g.lineWidth=2.5; g.beginPath(); g.moveTo(px,gy+6); g.quadraticCurveTo(px+sway+4,gy-H/2,px+sway,gy-H); g.stroke();
+    for(let k=1;k<5;k++){const yy=gy+6-H*k/5; g.fillStyle=k%2?leaf:leaf2; g.beginPath(); g.ellipse(px+sway*(k/5)+(k%2?-8:8),yy,sz*0.28,sz*0.13,k%2?-0.4:0.4,0,7); g.fill();}
+    if(gr>0.5){[[-6,.35],[7,.55],[-4,.7]].forEach(([dx,f])=>{g.fillStyle=ripe?fc:'#8DBA4A'; g.beginPath(); g.arc(px+dx+sway*f,gy+6-H*f,sz*0.13,0,7); g.fill();});} }
+}
+function probe(g,z,s,x,y,len,dark){
+  const S=SENS[s], col=cssv(S.color), txt=`${fmt(z.s[s],S.d)}${S.unit}`;
+  g.font='600 11px "IBM Plex Mono",monospace';
+  if(len){ g.fillStyle=dark?'#9FB0B8':'#333'; g.fillRect(x-1,y,2,len); }
+  const tw=g.measureText(txt).width+12; g.fillStyle=dark?'rgba(10,18,22,.9)':'rgba(255,255,255,.92)'; g.strokeStyle=col; g.lineWidth=2;
+  roundRect(g,x-tw/2,y-20,tw,17,4); g.fill(); g.stroke(); g.fillStyle=col; g.textAlign='center'; g.fillText(txt,x,y-7.5); g.textAlign='left';
+}
+function glow(g,x,y,r,rgb,a){const hg=g.createRadialGradient(x,y,2,x,y,r); hg.addColorStop(0,`rgba(${rgb},${a})`); hg.addColorStop(1,`rgba(${rgb},0)`); g.fillStyle=hg; g.fillRect(x-r,y-r,r*2,r*2);}
+function statusCol(z,s){const st=status(z,s,z.s[s]); return st==='bad'?'#FF5D4A':st==='warn'?'#F2B233':st==='low'?'#7FA0B0':'#3FD3AE';}
+
+/* 실험실 */
+function drawLab(g,z,w,h,min,wx,t){
+  const hr=(min/60)%24, sun=sunAt(min);
+  g.fillStyle='#E6ECEE'; g.fillRect(0,0,w,h);
+  g.strokeStyle='rgba(110,130,140,.16)'; g.lineWidth=1;
+  for(let x=0;x<w;x+=26){g.beginPath();g.moveTo(x+.5,0);g.lineTo(x+.5,h*0.72);g.stroke();}
+  for(let y=0;y<h*0.72;y+=26){g.beginPath();g.moveTo(0,y+.5);g.lineTo(w,y+.5);g.stroke();}
+  // window
+  const wx0=w*0.04, wy0=h*0.08, ww=w*0.25, wh=h*0.44;
+  const [s1,s2]=skyColors(min,wx); const sg=g.createLinearGradient(0,wy0,0,wy0+wh); sg.addColorStop(0,s1); sg.addColorStop(1,s2);
+  g.fillStyle=sg; g.fillRect(wx0,wy0,ww,wh);
+  g.save(); g.beginPath(); g.rect(wx0,wy0,ww,wh); g.clip();
+  if(sun>0){const a=(hr-6)/14*Math.PI; g.fillStyle=wx==='cloud'?'rgba(255,240,200,.6)':'#FFD65A'; g.beginPath(); g.arc(wx0+ww*0.5-Math.cos(a)*ww*0.42, wy0+wh*0.9-Math.sin(a)*wh*0.7,10,0,7); g.fill();}
+  else {g.fillStyle='#EDEFF7'; g.beginPath(); g.arc(wx0+ww*0.7,wy0+wh*0.25,8,0,7); g.fill();}
+  if(wx==='cloud'){g.fillStyle='rgba(255,255,255,.8)'; g.beginPath(); g.ellipse(wx0+((t*0.01)%(ww+60))-30,wy0+wh*0.3,28,9,0,0,7); g.fill();}
+  g.fillStyle='#9DBF86'; g.fillRect(wx0,wy0+wh*0.82,ww,wh*0.18);
+  if(z.a.shade){ g.fillStyle='#D5DAD4'; for(let i=0;i<10;i++){ g.fillRect(wx0,wy0+i*wh/10,ww,wh/10*0.72);} g.fillStyle='#A9B0AA'; g.fillRect(wx0,wy0-6,ww,6); }
+  g.restore();
+  g.strokeStyle='#F7FAFA'; g.lineWidth=7; g.strokeRect(wx0,wy0,ww,wh); g.lineWidth=4; g.beginPath(); g.moveTo(wx0+ww/2,wy0); g.lineTo(wx0+ww/2,wy0+wh); g.stroke();
+  g.fillStyle='#C9D2D6'; g.fillRect(wx0-8,wy0+wh+3,ww+16,7);
+  // sunbeam
+  const by=h*0.74, cx0=w*0.37, cx1=w*0.79, cy0=h*0.12;
+  if(sun>0){ const a=0.16*sun*EVENTS[wx].sun*(z.a.shade?0.35:1); g.fillStyle=`rgba(255,236,170,${a})`; g.beginPath(); g.moveTo(wx0+ww,wy0); g.lineTo(wx0+ww,wy0+wh); g.lineTo(cx1,by); g.lineTo(cx0,by); g.closePath(); g.fill(); }
+  // bench
+  g.fillStyle='#CAD4D9'; g.fillRect(0,by+10,w,h-by);
+  g.strokeStyle='#AEBAC0'; g.lineWidth=2; for(let i=1;i<5;i++){const x=w*i/5; g.beginPath(); g.moveTo(x,by+14); g.lineTo(x,h); g.stroke(); g.fillStyle='#8B989F'; g.fillRect(x-22,by+34,14,4); g.fillRect(x+8,by+34,14,4);}
+  g.fillStyle='#2F3B43'; g.fillRect(0,by,w,11);
+  // glassware
+  const fx=w*0.1, fy=by;
+  g.fillStyle='rgba(120,200,160,.75)'; g.beginPath(); g.moveTo(fx-16,fy); g.lineTo(fx+16,fy); g.lineTo(fx+5,fy-22); g.lineTo(fx-5,fy-22); g.closePath(); g.fill();
+  g.strokeStyle='#7C8A92'; g.lineWidth=1.5; g.beginPath(); g.moveTo(fx-20,fy); g.lineTo(fx-6,fy-30); g.lineTo(fx-6,fy-44); g.moveTo(fx+20,fy); g.lineTo(fx+6,fy-30); g.lineTo(fx+6,fy-44); g.stroke();
+  g.fillStyle='rgba(90,160,230,.55)'; g.fillRect(w*0.19,by-26,24,26); g.strokeStyle='#7C8A92'; g.strokeRect(w*0.19,by-38,24,38);
+  g.fillStyle='#F4F1E6'; g.save(); g.translate(w*0.27,by-3); g.rotate(-0.08); g.fillRect(-20,-6,44,8); g.restore();
+  // chamber
+  g.fillStyle='rgba(215,238,246,.45)'; roundRect(g,cx0,cy0,cx1-cx0,by-cy0,8); g.fill();
+  if(z.a.led){ const lg=g.createLinearGradient(0,cy0+14,0,by); lg.addColorStop(0,'rgba(236,110,210,.38)'); lg.addColorStop(1,'rgba(236,110,210,.04)'); g.fillStyle=lg; g.fillRect(cx0+4,cy0+14,cx1-cx0-8,by-cy0-18); }
+  if(z.a.heater){ glow(g,(cx0+cx1)/2,by-10,(cx1-cx0)*0.45,'255,130,60',.35); }
+  g.fillStyle='#4E5C65'; roundRect(g,cx0-6,cy0-16,cx1-cx0+12,20,5); g.fill();
+  g.fillStyle='#D8E3E7'; g.font='600 10px "IBM Plex Mono",monospace'; g.fillText('GROWTH CHAMBER · LAB-01',cx0+6,cy0-3);
+  g.fillStyle=z.a.led?'#F6B3EC':'#6D7A82'; g.fillRect(cx0+16,cy0+8,cx1-cx0-32,5);
+  // tray
+  const ty=by-26;
+  g.fillStyle='#5A4230'; g.fillRect(cx0+12,ty,cx1-cx0-24,16);
+  g.fillStyle=`rgba(30,40,70,${z.s.moist/100*0.45})`; g.fillRect(cx0+12,ty,cx1-cx0-24,16);
+  g.fillStyle=z.a.heater?'#F07A3A':'#9AA3A9'; g.fillRect(cx0+12,by-10,cx1-cx0-24,4);
+  g.fillStyle='#E9EEF0'; g.fillRect(cx0+8,by-6,cx1-cx0-16,6);
+  const scale=(w/640+0.35)*0.9;
+  for(let i=0;i<4;i++){ drawPlant(g,z,cx0+50+(cx1-cx0-100)*i/3,ty,(6+clamp(z.growth,0,100)/100*26)*scale,i,t); }
+  g.strokeStyle='#8C9AA3'; g.lineWidth=4; roundRect(g,cx0,cy0,cx1-cx0,by-cy0,8); g.stroke();
+  g.strokeStyle='rgba(255,255,255,.55)'; g.lineWidth=2; g.beginPath(); g.moveTo(cx0+14,cy0+30); g.lineTo(cx0+40,cy0+6); g.stroke();
+  drawFan(g,cx1-26,cy0+44,12,z.a.fan,t);
+  // reservoir + pump
+  const rx=cx1+22, rw=Math.max(26,w*0.05), rt=by-90;
+  g.fillStyle='rgba(230,240,245,.8)'; roundRect(g,rx,rt,rw,90,6); g.fill(); g.strokeStyle='#8C9AA3'; g.lineWidth=2; g.stroke();
+  g.fillStyle='rgba(60,140,220,.6)'; g.fillRect(rx+3,rt+30,rw-6,57);
+  g.fillStyle=z.a.pump?'#2A72B5':'#6D7A82'; g.fillRect(rx+rw/2-7,rt-12,14,12);
+  g.strokeStyle='#5E7C8C'; g.lineWidth=3; g.beginPath(); g.moveTo(rx+rw/2,rt-12); g.quadraticCurveTo(rx+rw/2,cy0+22,cx1-50,cy0+24); g.lineTo(cx0+60,cy0+24); g.stroke();
+  if(z.a.pump){ g.fillStyle='rgba(60,140,220,.85)'; for(let i=0;i<14;i++){const x=cx0+70+(cx1-cx0-140)*(i%7)/6; const y=cy0+28+((t/6+i*41)%(ty-cy0-30)); g.fillRect(x,y,2,6);} }
+  // data monitor
+  const mx=w*0.86, my=h*0.14, mw=w*0.12, mh=h*0.2;
+  if(mx+mw<w){ g.fillStyle='#2A353C'; roundRect(g,mx,my,mw,mh,5); g.fill(); g.fillStyle='#0F2126'; g.fillRect(mx+5,my+5,mw-10,mh-10);
+    const hd=(z.hist&&z.hist.temp)||[]; if(hd.length>1){ g.strokeStyle='#FF9B5E'; g.lineWidth=1.5; g.beginPath(); hd.forEach((v,i)=>{const x=mx+7+(mw-14)*i/143, y=my+mh-8-(clamp(v,0,40)/40)*(mh-16); i?g.lineTo(x,y):g.moveTo(x,y);}); g.stroke(); }
+    g.fillStyle='#7ED3BC'; g.font='600 9px "IBM Plex Mono",monospace'; g.fillText('TEMP LOG',mx+8,my+16);
+    g.fillStyle='#3E4A51'; g.fillRect(mx+mw/2-4,my+mh,8,by-my-mh); }
+  if(sun===0){ g.fillStyle='rgba(18,28,48,.2)'; g.fillRect(0,0,w,h); }
+  probe(g,z,'temp',cx0+44,cy0+62,40);
+  probe(g,z,'moist',(cx0+cx1)/2,ty-2,16);
+  probe(g,z,'light',cx1-70,cy0+40,14);
+}
+
+/* 스마트 공장 */
+function drawFactory(g,z,w,h,min,wx,t){
+  const hr=(min/60)%24, sun=sunAt(min);
+  const bg=g.createLinearGradient(0,0,0,h); bg.addColorStop(0,'#1B262D'); bg.addColorStop(1,'#10171B'); g.fillStyle=bg; g.fillRect(0,0,w,h);
+  g.strokeStyle='rgba(255,255,255,.035)'; g.lineWidth=1; for(let x=0;x<w;x+=w/10){g.beginPath(); g.moveTo(x+.5,h*0.12); g.lineTo(x+.5,h*0.86); g.stroke();}
+  // skylight
+  const skH=h*0.11; const [s1,s2]=skyColors(min,wx); const sg=g.createLinearGradient(0,0,0,skH); sg.addColorStop(0,s1); sg.addColorStop(1,s2); g.fillStyle=sg; g.fillRect(0,0,w,skH);
+  if(sun>0){ const a=(hr-6)/14*Math.PI; glow(g,w*0.5-Math.cos(a)*w*0.45,skH*0.6,40,'255,225,120',wx==='cloud'?.3:.8); }
+  if(z.a.shade){ g.fillStyle='rgba(38,48,54,.92)'; for(let i=0;i<w;i+=18) g.fillRect(i,0,13,skH); }
+  g.strokeStyle='#5E6E77'; g.lineWidth=2; g.beginPath(); for(let x=0,k=0;x<=w;x+=w/16,k++){ g.lineTo(x,k%2?skH*0.15:skH); } g.stroke();
+  g.fillStyle='#56656E'; g.fillRect(0,skH,w,7);
+  if(sun>0){ const a=0.07*sun*EVENTS[wx].sun*(z.a.shade?0.3:1); const sb=g.createLinearGradient(0,skH,0,h*0.86); sb.addColorStop(0,`rgba(255,236,170,${a})`); sb.addColorStop(1,'rgba(255,236,170,0)'); g.fillStyle=sb; g.fillRect(0,skH+7,w,h*0.75); }
+  // HVAC
+  const hx=w*0.025, hy=h*0.2, hw=w*0.075, hh=h*0.2;
+  g.fillStyle='#3A4850'; roundRect(g,hx,hy,hw,hh,4); g.fill(); g.strokeStyle='#5E6E77'; g.lineWidth=1.5; g.stroke();
+  for(let i=0;i<6;i++){ g.fillStyle=z.a.heater?`rgba(255,${120+i*8},60,.9)`:'#26323A'; g.fillRect(hx+6,hy+12+i*(hh-24)/6,hw-12,(hh-24)/10); }
+  if(z.a.heater) glow(g,hx+hw/2,hy+hh/2,90,'255,120,50',.3);
+  g.fillStyle='#9FB0B8'; g.font='600 9px "IBM Plex Mono",monospace'; g.fillText('HVAC',hx+4,hy+hh+12);
+  // rack
+  const x0=w*0.15, x1=w*0.8, tiers=[h*0.44,h*0.72], tH=h*0.22;
+  g.fillStyle='#4C5B64'; [x0-10,x1+4].forEach(x=>g.fillRect(x,h*0.18,6,h*0.86-h*0.18));
+  tiers.forEach((ty,ti)=>{
+    const ly=ty-tH;
+    g.fillStyle='#2B363D'; g.fillRect(x0-6,ly-4,x1-x0+12,8);
+    g.fillStyle=z.a.led?'#FF8ADF':'#39454C'; g.fillRect(x0,ly+4,x1-x0,4);
+    if(z.a.led){ const lg=g.createLinearGradient(0,ly+8,0,ty); lg.addColorStop(0,'rgba(255,110,215,.42)'); lg.addColorStop(1,'rgba(255,110,215,.03)'); g.fillStyle=lg; g.fillRect(x0,ly+8,x1-x0,ty-ly-8); }
+    const n=7, scale=(w/640+0.35)*0.72;
+    for(let i=0;i<n;i++){ drawPlant(g,z,x0+26+(x1-x0-52)*i/(n-1),ty-2,(6+clamp(z.growth,0,100)/100*26)*scale,i+ti*3,t,tH-22); }
+    g.fillStyle='#246E92'; g.fillRect(x0,ty,x1-x0,11);
+    g.fillStyle=`rgba(10,20,40,${(1-z.s.moist/100)*0.5})`; g.fillRect(x0,ty,x1-x0,11);
+    g.fillStyle='rgba(255,255,255,.28)'; g.fillRect(x0,ty,x1-x0,2);
+    g.fillStyle='#7A8A93'; g.fillRect(x0-8,ty+11,x1-x0+16,5);
+  });
+  // pipe
+  const px=x1+20;
+  g.strokeStyle='#5E7C8C'; g.lineWidth=5; g.beginPath(); g.moveTo(px,h*0.16); g.lineTo(px,h*0.86); g.stroke();
+  tiers.forEach(ty=>{g.beginPath(); g.moveTo(px,ty+5); g.lineTo(x1-4,ty+5); g.stroke();});
+  if(z.a.pump){ g.strokeStyle='#8FD0FF'; g.lineWidth=2; g.setLineDash([6,8]); g.lineDashOffset=-t/25; g.beginPath(); g.moveTo(px,h*0.16); g.lineTo(px,h*0.86); tiers.forEach(ty=>{g.moveTo(px,ty+5); g.lineTo(x1-4,ty+5);}); g.stroke(); g.setLineDash([]); }
+  // exhaust fan
+  g.fillStyle='#2A363D'; g.beginPath(); g.arc(w*0.915,h*0.27,24,0,7); g.fill();
+  drawFan(g,w*0.915,h*0.27,15,z.a.fan,t);
+  // HMI panel
+  const mx=w*0.87, my=h*0.45, mw=w*0.11, mh=h*0.3;
+  g.fillStyle='#0B1114'; roundRect(g,mx,my,mw,mh,5); g.fill(); g.strokeStyle='#4C5B64'; g.lineWidth=1.5; g.stroke();
+  g.fillStyle='#07181B'; g.fillRect(mx+5,my+5,mw-10,mh*0.52);
+  g.fillStyle='#6FE0C2'; g.font='600 9px "IBM Plex Mono",monospace';
+  g.fillText('LINE '+(z.code||''),mx+9,my+18); g.fillText('GROW '+Math.floor(z.growth)+'%',mx+9,my+31); g.fillText('HLTH '+Math.round(z.health)+'%',mx+9,my+44);
+  ['temp','moist','light'].forEach((s,i)=>{ const c=statusCol(z,s), lx=mx+12+i*(mw-24)/2, ly=my+mh*0.75; glow(g,lx,ly,12,c==='#FF5D4A'?'255,93,74':c==='#F2B233'?'242,178,51':'63,211,174',.35); g.fillStyle=c; g.beginPath(); g.arc(lx,ly,4.5,0,7); g.fill(); });
+  // floor
+  const fy=h*0.86;
+  g.fillStyle='#232C32'; g.fillRect(0,fy,w,h-fy);
+  g.save(); g.beginPath(); g.rect(0,fy-4,w,7); g.clip(); g.fillStyle='#1A1A1A'; g.fillRect(0,fy-4,w,7); g.fillStyle='#E3B21A'; for(let x=-10;x<w;x+=18){ g.beginPath(); g.moveTo(x,fy+3); g.lineTo(x+9,fy+3); g.lineTo(x+16,fy-4); g.lineTo(x+7,fy-4); g.closePath(); g.fill(); } g.restore();
+  // conveyor
+  const cy=fy+h*0.075, cx0=w*0.04, cx1=w*0.96;
+  g.fillStyle='#0E1316'; roundRect(g,cx0,cy-5,cx1-cx0,10,5); g.fill();
+  g.fillStyle='#3A474F'; for(let x=cx0+8;x<cx1;x+=22){ g.beginPath(); g.arc(x,cy+8,3,0,7); g.fill(); }
+  const pc=z.crop==='lettuce'?'#6DBB5A':'#D8402F';
+  for(let i=0;i<5;i++){ const span=cx1-cx0-40, x=cx0+((t*0.02+i*span/5)%span); const bw=30, bh=16;
+    g.fillStyle='#A9793F'; g.fillRect(x,cy-5-bh,bw,bh); g.fillStyle='#8A6030'; g.fillRect(x,cy-5-bh,bw,3);
+    g.fillStyle=pc; for(let k=0;k<3;k++){ g.beginPath(); g.arc(x+7+k*8,cy-5-bh,4,0,7); g.fill(); } }
+  probe(g,z,'temp',x0+30,tiers[0]-tH+30,24,true);
+  probe(g,z,'moist',(x0+x1)/2,tiers[1]-4,0,true);
+  probe(g,z,'light',x1-50,tiers[0]-tH+30,0,true);
+}
+function drawFan(g,x,y,r,on,t){
+  g.fillStyle='#E9EEF0'; g.beginPath(); g.arc(x,y,r+4,0,7); g.fill(); g.strokeStyle='#6E7F86'; g.lineWidth=2; g.stroke();
+  const a=on?t/80:0.3; g.fillStyle=on?'#2A72B5':'#8A979C';
+  for(let k=0;k<3;k++){g.beginPath(); g.ellipse(x+Math.cos(a+k*2.09)*r*0.5,y+Math.sin(a+k*2.09)*r*0.5,r*0.5,r*0.22,a+k*2.09,0,7); g.fill();}
+}
+function drawBarn(g,z,w,h,x0,x1,top,gy,t){
+  g.fillStyle='#A5623B'; g.beginPath(); g.moveTo(x0,gy); g.lineTo(x0,top+50); g.lineTo(w/2,top-4); g.lineTo(x1,top+50); g.lineTo(x1,gy); g.closePath(); g.fill();
+  g.fillStyle='#E7C99A'; g.fillRect(x0+12,top+56,x1-x0-24,gy-top-56);
+  g.strokeStyle='rgba(120,70,40,.25)'; g.lineWidth=1; for(let y=top+70;y<gy;y+=14){g.beginPath(); g.moveTo(x0+12,y); g.lineTo(x1-12,y); g.stroke();}
+  g.fillStyle='#D8B35E'; g.fillRect(x0+12,gy-10,x1-x0-24,14);
+  // ammonia haze
+  const n=z.s.nh3; if(n>8){g.fillStyle=`rgba(150,160,60,${Math.min(0.35,(n-8)/60)})`; g.fillRect(x0+12,top+56,x1-x0-24,gy-top-56);}
+  // feeder hopper
+  const fx=x1-90, fy=gy-70; g.fillStyle='#7E8A90'; g.beginPath(); g.moveTo(fx,fy); g.lineTo(fx+40,fy); g.lineTo(fx+28,fy+40); g.lineTo(fx+12,fy+40); g.closePath(); g.fill();
+  g.fillStyle='#C9A148'; const fl=z.s.feed/100*34; g.fillRect(fx+10,fy+38-fl,20,fl);
+  g.fillStyle='#6A5A40'; g.fillRect(fx-6,gy-12,56,6);
+  // nest with eggs
+  const nx=x0+30, ny=gy-20; g.fillStyle='#B48A45'; g.beginPath(); g.ellipse(nx+30,ny+6,36,10,0,0,7); g.fill();
+  g.fillStyle='#FFF6E4'; for(let i=0;i<Math.min(G?G.eggs:3,10);i++){g.beginPath(); g.ellipse(nx+6+(i%5)*11,ny-(i>4?7:0),5,6.5,0,0,7); g.fill();}
+  // chickens
+  for(let i=0;i<5;i++){
+    const span=x1-x0-200; const cx=x0+110+((Math.sin(t/(2600+i*400)+i*2)+1)/2)*span*0.8, cy=gy-16-(i%2)*4;
+    const dir=Math.cos(t/(2600+i*400)+i*2)>0?1:-1, peck=Math.sin(t/200+i)>0.7?4:0;
+    g.fillStyle=z.cond<40?'#D8D2C4':'#FFFFFF'; g.beginPath(); g.ellipse(cx,cy,15,11,0,0,7); g.fill();
+    g.beginPath(); g.arc(cx+dir*12,cy-10+peck,7,0,7); g.fill();
+    g.fillStyle='#D7302A'; g.beginPath(); g.arc(cx+dir*12,cy-18+peck,3.5,0,7); g.fill();
+    g.fillStyle='#F2A21B'; g.beginPath(); g.moveTo(cx+dir*18,cy-11+peck); g.lineTo(cx+dir*24,cy-9+peck); g.lineTo(cx+dir*18,cy-7+peck); g.fill();
+    g.fillStyle='#222'; g.beginPath(); g.arc(cx+dir*14,cy-12+peck,1.3,0,7); g.fill();
+  }
+  // heater
+  const hx=x0+20, hy=top+64; g.fillStyle=z.a.heater?'#E56A30':'#9B8F86'; roundRect(g,hx,hy,30,20,4); g.fill();
+  if(z.a.heater){const hg=g.createRadialGradient(hx+15,hy+10,4,hx+15,hy+10,60); hg.addColorStop(0,'rgba(255,130,60,.45)'); hg.addColorStop(1,'rgba(255,130,60,0)'); g.fillStyle=hg; g.fillRect(hx-50,hy-50,130,120);}
+  drawFan(g,x1-80,top+105,15,z.a.fan,t);
+}
+
+/* 귀여운 동물 농장 */
+function heart(g,x,y,r,c){g.fillStyle=c;g.beginPath();g.moveTo(x,y+r*0.9);g.bezierCurveTo(x-r*1.4,y-r*0.1,x-r*0.6,y-r*1.2,x,y-r*0.35);g.bezierCurveTo(x+r*0.6,y-r*1.2,x+r*1.4,y-r*0.1,x,y+r*0.9);g.fill();}
+function bubble(g,x,y,txt){
+  g.font='700 12px "IBM Plex Sans KR",sans-serif'; const tw=g.measureText(txt).width+18, bh=22;
+  g.fillStyle='#FFFFFF'; g.strokeStyle='#E8B9A8'; g.lineWidth=2;
+  roundRect(g,x-tw/2,y-bh,tw,bh,11); g.fill(); g.stroke();
+  g.beginPath(); g.moveTo(x-5,y-1); g.lineTo(x+1,y+7); g.lineTo(x+5,y-1); g.closePath(); g.fill();
+  g.fillStyle='#6B4336'; g.textAlign='center'; g.fillText(txt,x,y-7); g.textAlign='left';
+}
+function cuteHen(g,cx,cy,dir,t,i,mood,sleep){
+  const bob=sleep?0:Math.abs(Math.sin(t/260+i*1.7))*3.5, y=cy-bob, s=1;
+  // 발
+  if(!sleep){ g.strokeStyle='#F2A33A'; g.lineWidth=2.2; g.lineCap='round';
+    const st=Math.sin(t/130+i)*3; g.beginPath(); g.moveTo(cx-4,y+9); g.lineTo(cx-4+st,cy+15); g.moveTo(cx+4,y+9); g.lineTo(cx+4-st,cy+15); g.stroke(); }
+  // 꼬리
+  g.fillStyle='#FFF6EA'; g.beginPath(); g.ellipse(cx-dir*15,y-7,6,9,-dir*0.6,0,7); g.fill();
+  // 몸
+  g.fillStyle='#FFFDF8'; g.strokeStyle='#EBD9C5'; g.lineWidth=1.5;
+  g.beginPath(); g.ellipse(cx,y,17,sleep?11:13,0,0,7); g.fill(); g.stroke();
+  // 머리
+  const hx=cx+dir*10, hy=y-12+(mood==='peck'?4:0);
+  g.beginPath(); g.arc(hx,hy,10,0,7); g.fill(); g.stroke();
+  g.fillStyle='#FFFDF8'; g.beginPath(); g.ellipse(cx+dir*4,y-4,9,8,0,0,7); g.fill();
+  // 볏
+  g.fillStyle='#F2665A'; [-4,0,4].forEach((d,k)=>{g.beginPath(); g.arc(hx+d*0.9,hy-10-(k===1?2:0),3.4,0,7); g.fill();});
+  // 날개
+  const flap=(mood==='happy'&&!sleep)?Math.sin(t/90+i)*0.5:0;
+  g.fillStyle='#F7EBDD'; g.beginPath(); g.ellipse(cx-dir*2,y+1,9,6,-dir*(0.3+flap),0,7); g.fill();
+  // 부리
+  g.fillStyle='#F7B23B'; g.beginPath(); g.moveTo(hx+dir*8,hy-1); g.lineTo(hx+dir*14,hy+1.5); g.lineTo(hx+dir*8,hy+4); g.closePath(); g.fill();
+  g.fillStyle='#F2665A'; g.beginPath(); g.ellipse(hx+dir*8,hy+6,2,3,0,0,7); g.fill();
+  // 눈
+  const ex=hx+dir*3.5, ey=hy-2;
+  g.strokeStyle='#3B2A25'; g.fillStyle='#3B2A25'; g.lineWidth=1.8;
+  if(sleep){ g.beginPath(); g.arc(ex,ey,2.6,0.15*Math.PI,0.85*Math.PI); g.stroke(); }
+  else if(mood==='happy'&&Math.sin(t/700+i)>0.3){ g.beginPath(); g.arc(ex,ey+1.5,2.8,1.15*Math.PI,1.85*Math.PI); g.stroke(); }
+  else { g.beginPath(); g.arc(ex,ey,2.8,0,7); g.fill(); g.fillStyle='#FFFFFF'; g.beginPath(); g.arc(ex+0.9,ey-1,1,0,7); g.fill();
+    if(mood==='sad'){ g.strokeStyle='#3B2A25'; g.beginPath(); g.moveTo(ex-3,ey-5+(dir>0?0:2)); g.lineTo(ex+3,ey-5+(dir>0?2:0)); g.stroke(); } }
+  // 볼터치
+  g.fillStyle='rgba(255,140,150,.55)'; g.beginPath(); g.ellipse(hx+dir*1,hy+4,3.2,2,0,0,7); g.fill();
+  if(mood==='sad'&&!sleep){ g.fillStyle='#8FD0F5'; g.beginPath(); g.moveTo(hx-dir*7,hy-10); g.quadraticCurveTo(hx-dir*10,hy-4,hx-dir*7,hy-3); g.quadraticCurveTo(hx-dir*4,hy-4,hx-dir*7,hy-10); g.fill(); }
+  if(sleep){ g.fillStyle='#7A8FB8'; g.font='700 11px sans-serif'; const zz=(t/900+i*0.3)%1; g.globalAlpha=1-zz; g.fillText('z',hx+dir*6+zz*8,hy-14-zz*14); g.fillText('Z',hx+dir*10+zz*10,hy-22-zz*16); g.globalAlpha=1; }
+}
+function chick(g,x,y,t,i,dir){
+  const b=Math.abs(Math.sin(t/180+i))*3; y-=b;
+  g.fillStyle='#FFD95A'; g.beginPath(); g.arc(x,y,6.5,0,7); g.fill(); g.beginPath(); g.arc(x+dir*5,y-5,4.5,0,7); g.fill();
+  g.fillStyle='#F29A2E'; g.beginPath(); g.moveTo(x+dir*9,y-5.5); g.lineTo(x+dir*12,y-4); g.lineTo(x+dir*9,y-3); g.fill();
+  g.fillStyle='#3B2A25'; g.beginPath(); g.arc(x+dir*6.5,y-6,1.1,0,7); g.fill();
+  g.strokeStyle='#F29A2E'; g.lineWidth=1.5; g.beginPath(); g.moveTo(x-2,y+6); g.lineTo(x-2,y+9+b); g.moveTo(x+2,y+6); g.lineTo(x+2,y+9+b); g.stroke();
+}
+function drawCuteBarn(g,z,w,h,min,wx,t){
+  const hr=(min/60)%24, sun=sunAt(min), night=sun===0;
+  // 하늘
+  const day=!night&&hr>=7&&hr<19;
+  const sg=g.createLinearGradient(0,0,0,h*0.6);
+  if(night){sg.addColorStop(0,'#2C3566');sg.addColorStop(1,'#5B5E98');}
+  else if(!day){sg.addColorStop(0,'#F7B7A3');sg.addColorStop(1,'#FFE3C4');}
+  else if(wx==='cloud'){sg.addColorStop(0,'#B9C6D2');sg.addColorStop(1,'#E3E9EE');}
+  else {sg.addColorStop(0,'#8FD3F4');sg.addColorStop(1,'#E4F6FC');}
+  g.fillStyle=sg; g.fillRect(0,0,w,h);
+  if(night){ g.fillStyle='#FFF6C8'; for(let i=0;i<18;i++){const x=(i*113)%w, y=(i*47)%(h*0.3); const tw=0.5+0.5*Math.sin(t/400+i); g.globalAlpha=tw; g.fillRect(x,y,2,2);} g.globalAlpha=1;
+    g.fillStyle='#FFF3B8'; g.beginPath(); g.arc(w*0.85,h*0.12,13,0,7); g.fill(); g.fillStyle='#2C3566'; g.beginPath(); g.arc(w*0.85+6,h*0.12-4,11,0,7); g.fill(); }
+  else { const a=(hr-6)/14*Math.PI, sx=w*0.5-Math.cos(a)*w*0.44, sy=h*0.5-Math.sin(a)*h*0.4;
+    glow(g,sx,sy,44,'255,220,120',wx==='cloud'?.25:.55); g.fillStyle=wx==='cloud'?'#FFEBA8':'#FFD452'; g.beginPath(); g.arc(sx,sy,15,0,7); g.fill();
+    g.fillStyle='#8A5A1E'; g.beginPath(); g.arc(sx-5,sy-2,1.6,0,7); g.arc(sx+5,sy-2,1.6,0,7); g.fill(); g.strokeStyle='#8A5A1E'; g.lineWidth=1.5; g.beginPath(); g.arc(sx,sy+2,5,0.2*Math.PI,0.8*Math.PI); g.stroke();
+    g.fillStyle='rgba(255,150,130,.6)'; g.beginPath(); g.arc(sx-9,sy+3,2.5,0,7); g.arc(sx+9,sy+3,2.5,0,7); g.fill(); }
+  // 구름
+  g.fillStyle=night?'rgba(200,205,240,.35)':'rgba(255,255,255,.92)';
+  [[0.18,0.1,1],[0.62,0.07,0.8],[0.9,0.2,0.7]].forEach(([cx,cy,sc],i)=>{const x=((cx*w+t*0.008*(i+1))%(w+120))-60, y=cy*h; g.beginPath(); g.arc(x,y,14*sc,0,7); g.arc(x+16*sc,y-7*sc,17*sc,0,7); g.arc(x+34*sc,y,13*sc,0,7); g.fill(); g.fillRect(x,y,34*sc,13*sc);});
+  // 언덕
+  const gy=h*0.83;
+  g.fillStyle=night?'#4E6B5A':'#BDE5A5'; g.beginPath(); g.ellipse(w*0.2,gy,w*0.35,h*0.22,0,Math.PI,0); g.fill();
+  g.fillStyle=night?'#44604F':'#A7DB8E'; g.beginPath(); g.ellipse(w*0.85,gy,w*0.3,h*0.18,0,Math.PI,0); g.fill();
+  g.fillStyle=night?'#3F5A48':'#9CD27F'; g.fillRect(0,gy-4,w,h-gy+4);
+  // 꽃
+  for(let i=0;i<16;i++){const x=(i*71+13)%w, y=gy+8+(i*37)%(h-gy-12); const c=['#FF9FB2','#FFD66B','#FFFFFF','#C9A7F5'][i%4]; g.fillStyle=c; for(let k=0;k<5;k++){const a=k/5*Math.PI*2; g.beginPath(); g.arc(x+Math.cos(a)*3,y+Math.sin(a)*3,2.4,0,7); g.fill();} g.fillStyle='#F5A623'; g.beginPath(); g.arc(x,y,1.8,0,7); g.fill();}
+  // 닭장
+  const x0=w*0.07, x1=w*0.93, wt=h*0.33, fl=gy-2, mid=w/2;
+  g.fillStyle='#F9DEC0'; roundRect(g,x0,wt,x1-x0,fl-wt,14); g.fill();
+  g.strokeStyle='rgba(214,160,120,.35)'; g.lineWidth=1.5; for(let x=x0+26;x<x1-10;x+=26){g.beginPath(); g.moveTo(x,wt+6); g.lineTo(x,fl-4); g.stroke();}
+  g.strokeStyle='#E48B78'; g.lineWidth=5; roundRect(g,x0,wt,x1-x0,fl-wt,14); g.stroke();
+  // 지붕 (물결 기와)
+  const rt=h*0.06;
+  g.fillStyle='#EE7A69'; g.beginPath(); g.moveTo(x0-18,wt+10); g.quadraticCurveTo(mid,rt-24,x1+18,wt+10); g.closePath(); g.fill();
+  g.save(); g.beginPath(); g.moveTo(x0-18,wt+10); g.quadraticCurveTo(mid,rt-24,x1+18,wt+10); g.closePath(); g.clip();
+  for(let row=0,y=wt+6;y>rt-30;row++,y-=13){ g.fillStyle=row%2?'#F4968A':'#E96F5F'; for(let x=x0-30+(row%2)*9;x<x1+30;x+=18){ g.beginPath(); g.arc(x,y,9,0,Math.PI); g.fill(); } }
+  g.restore();
+  // 간판
+  const sw=Math.min(150,w*0.26); g.fillStyle='#FFF6E6'; roundRect(g,mid-sw/2,wt-44,sw,28,14); g.fill(); g.strokeStyle='#C98363'; g.lineWidth=2; g.stroke();
+  g.fillStyle='#8A4B3A'; g.font='700 14px "Do Hyeon","IBM Plex Sans KR",sans-serif'; g.textAlign='center'; g.fillText('꼬꼬 하우스',mid,wt-25); g.textAlign='left';
+  heart(g,mid-sw/2+14,wt-31,5,'#F2665A'); heart(g,mid+sw/2-14,wt-31,5,'#F2665A');
+  // 바닥 짚
+  g.fillStyle='#F6D98A'; roundRect(g,x0+4,fl-22,x1-x0-8,20,8); g.fill();
+  g.strokeStyle='#E5BD5C'; g.lineWidth=1.3; for(let i=0;i<40;i++){const x=x0+12+((i*53)%(x1-x0-24)), y=fl-18+(i*7)%14; g.beginPath(); g.moveTo(x,y); g.lineTo(x+7,y-3); g.stroke();}
+  // 건초더미
+  const bx=x1-w*0.2; g.fillStyle='#F3C75F'; roundRect(g,bx,fl-48,56,30,8); g.fill(); g.strokeStyle='#D9A63C'; g.lineWidth=2; g.beginPath(); g.moveTo(bx+18,fl-48); g.lineTo(bx+18,fl-18); g.moveTo(bx+38,fl-48); g.lineTo(bx+38,fl-18); g.stroke();
+  // 둥지 + 달걀
+  const nx=x0+w*0.05, ny=fl-24;
+  const eggs=Math.min(G?G.eggs:3,8);
+  for(let i=0;i<eggs;i++){const ex=nx+10+(i%4)*12, ey=ny-6-(i>3?8:0); g.fillStyle='#FFF8EC'; g.beginPath(); g.ellipse(ex,ey,5.5,7,0,0,7); g.fill(); g.fillStyle='rgba(255,255,255,.9)'; g.beginPath(); g.ellipse(ex-2,ey-3,1.5,2.3,0,0,7); g.fill();}
+  g.fillStyle='#D39A5C'; g.beginPath(); g.ellipse(nx+28,ny,34,10,0,0,Math.PI); g.fill(); g.fillStyle='#C08144'; g.fillRect(nx-6,ny-3,68,5);
+  if(eggs>0){ const sp=(t/500)%1; g.fillStyle=`rgba(255,215,90,${1-sp})`; const sx=nx+50, sy=ny-18-sp*6; g.beginPath(); g.moveTo(sx,sy-5); g.lineTo(sx+1.5,sy-1.5); g.lineTo(sx+5,sy); g.lineTo(sx+1.5,sy+1.5); g.lineTo(sx,sy+5); g.lineTo(sx-1.5,sy+1.5); g.lineTo(sx-5,sy); g.lineTo(sx-1.5,sy-1.5); g.fill(); }
+  // 급이기
+  const fx=x1-w*0.1, fy=fl-78;
+  g.fillStyle='#9BD0EF'; roundRect(g,fx-18,fy,36,44,10); g.fill(); g.strokeStyle='#6DA9CF'; g.lineWidth=2; g.stroke();
+  g.fillStyle='#F2C255'; const lv=z.s.feed/100*36; roundRect(g,fx-13,fy+40-lv,26,lv,5); g.fill();
+  g.fillStyle='#6DA9CF'; roundRect(g,fx-26,fl-30,52,10,5); g.fill();
+  if(z.a.feeder){ g.fillStyle='#F2C255'; for(let i=0;i<4;i++){ const yy=fy+46+((t/5+i*9)%14); g.beginPath(); g.arc(fx-4+i*3,yy,1.6,0,7); g.fill(); } }
+  // 히터(보온등)
+  const hx=x0+w*0.13, hy=wt+40;
+  g.strokeStyle='#B98B77'; g.lineWidth=2; g.beginPath(); g.moveTo(hx,wt+4); g.lineTo(hx,hy-10); g.stroke();
+  g.fillStyle=z.a.heater?'#FF9B5E':'#D8C2B4'; g.beginPath(); g.arc(hx,hy,12,Math.PI,0); g.fill(); g.fillRect(hx-12,hy,24,4);
+  if(z.a.heater) glow(g,hx,hy+10,70,'255,140,80',.35);
+  // 조명
+  g.strokeStyle='#B98B77'; g.beginPath(); g.moveTo(mid,wt+4); g.lineTo(mid,wt+24); g.stroke();
+  g.fillStyle=z.a.lamp?'#FFE889':'#E9E0D2'; g.beginPath(); g.arc(mid,wt+31,8,0,7); g.fill();
+  // 환풍기
+  const fnx=x1-w*0.06, fny=wt+42; g.fillStyle='#FFFFFF'; g.beginPath(); g.arc(fnx,fny,20,0,7); g.fill(); g.strokeStyle='#9BD0EF'; g.lineWidth=4; g.stroke();
+  const a=z.a.fan?t/80:0.3; g.fillStyle=z.a.fan?'#6DB6E6':'#C9D6DE'; for(let k=0;k<4;k++){g.beginPath(); g.ellipse(fnx+Math.cos(a+k*1.57)*7,fny+Math.sin(a+k*1.57)*7,7,3.5,a+k*1.57,0,7); g.fill();}
+  g.fillStyle='#F4A6B5'; g.beginPath(); g.arc(fnx,fny,3,0,7); g.fill();
+  // 암모니아 냄새
+  const n=z.s.nh3;
+  if(n>12){ const k=Math.min(5,Math.floor((n-10)/4)+1); g.strokeStyle='rgba(150,180,80,.7)'; g.lineWidth=2.5;
+    for(let i=0;i<k;i++){ const sx=x0+w*0.2+i*w*0.13, off=(t/40+i*30)%50; g.globalAlpha=1-off/50; g.beginPath(); for(let j=0;j<20;j++){ const yy=fl-30-off-j*1.6; const xx=sx+Math.sin(j/3+t/300)*4; j?g.lineTo(xx,yy):g.moveTo(xx,yy);} g.stroke(); } g.globalAlpha=1; }
+  // 닭 상태
+  const mood=z.cond>=70?'happy':z.cond>=40?'ok':'sad';
+  const sleep=night&&!z.a.lamp;
+  const span=x1-x0-w*0.36, base=x0+w*0.17;
+  const hens=[];
+  for(let i=0;i<5;i++){
+    const ph=t/(3200+i*500)+i*2.1, cx=sleep?base+span*(0.1+i*0.2):base+((Math.sin(ph)+1)/2)*span, cy=fl-20-(i%2)*6;
+    const dir=sleep?(i%2?1:-1):(Math.cos(ph)>0?1:-1);
+    hens.push({cx,cy,dir});
+  }
+  hens.sort((a,b)=>a.cy-b.cy).forEach((hn,i)=>cuteHen(g,hn.cx,hn.cy,hn.dir,t,i,mood==='ok'&&Math.sin(t/260+i)>0.85?'peck':mood,sleep));
+  // 병아리
+  [0,2].forEach((k,j)=>{ const hn=hens[k]; for(let q=0;q<2;q++){ chick(g,hn.cx-hn.dir*(28+q*14),fl-12,t,q+j*2,hn.dir); } });
+  // 하트
+  if(mood==='happy'&&!sleep){ for(let i=0;i<3;i++){ const hn=hens[i*2]; const p=((t/1600)+i*0.33)%1; g.globalAlpha=1-p; heart(g,hn.cx+hn.dir*6,hn.cy-34-p*26,4+p*2,'#FF7A8A'); g.globalAlpha=1; } }
+  // 말풍선
+  const T=z.s.temp; let say='행복해요 ♥';
+  if(sleep) say='쿨쿨… 잘 자요';
+  else if(z.s.feed<20) say='배고파요!';
+  else if(n>15) say='냄새나요, 환기해 주세요!';
+  else if(T<18) say='추워요…';
+  else if(T>26) say='더워요!';
+  else if(mood!=='happy') say='기분이 그냥 그래요';
+  bubble(g,clamp(hens[0].cx+hens[0].dir*12,x0+70,x1-70),hens[0].cy-40,say);
+  // 밤
+  if(night){ g.fillStyle='rgba(30,35,80,.22)'; g.fillRect(0,0,w,h); }
+  if(z.a.lamp){ glow(g,mid,wt+31,w*0.35,'255,225,140',.35); g.fillStyle='#FFF3B0'; g.beginPath(); g.arc(mid,wt+31,8,0,7); g.fill(); }
+  // 센서
+  probe(g,z,'temp',x0+w*0.24,wt+60,26);
+  probe(g,z,'nh3',x0+w*0.42,wt+60,26);
+  probe(g,z,'feed',fx,fy-6,0);
+  probe(g,z,'light',mid+w*0.16,wt+60,26);
+}
+
+/* ---------- 메뉴 미리보기 ---------- */
+const demo={kind:'crop',crop:'lettuce',s:{temp:22.4,moist:63,light:24800},a:{heater:false,fan:true,pump:true,led:false,shade:false},growth:70,health:95};
+function loop(t){
+  anim=t;
+  if(!$('#menu').hidden){ drawScene($('#heroCanvas'),demo,720,'clear',t,'farm'); }
+  if(G && !$('#game').hidden){ const cv=$('#scene'); const z=G.zones[sel]; drawScene(cv,z,G.min,G.weather,t,G.st.theme); }
+  requestAnimationFrame(loop);
+}
+function sizeScene(){ const cv=$('#scene'); cv.style.height=Math.round(Math.min(420,cv.clientWidth*0.6))+'px'; }
+
+/* ---------- 속도 ---------- */
+function setSpeed(sp,silent){
+  speed=sp; clearInterval(timer); timer=null;
+  document.querySelectorAll('.speed button').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.sp===sp));
+  if(sp>0 && G && !G.over) timer=setInterval(tick,400/sp);
+}
+
+/* ---------- 모달 ---------- */
+function showModal(html,wide){ $('#modalCard').classList.toggle('wide',!!wide); $('#modalCard').innerHTML=html; $('#modal').hidden=false; const b=$('#modalCard .btn.primary')||$('#modalCard .btn'); b&&b.focus(); }
+function hideModal(){ $('#modal').hidden=true; }
+
+
+/* ---------- 실험실: 식물 선택·조건 세팅·데이터 수집 ---------- */
+let pkCat='채소', pkSel=null, pkQuery='';
+const fmtR=(r,k)=>{ const d=(k==='PH'||k==='EC')?1:0; return k==='L'?`${(r[0]/1000).toFixed(r[0]%1000?1:0)}~${(r[1]/1000).toFixed(r[1]%1000?1:0)}천`:`${r[0].toFixed(d)}~${r[1].toFixed(d)}`; };
+function showPlantPicker(selId){
+  pkSel=selId||pkSel||PLANT_LIB[0].id; const p=plantById(pkSel); if(p) pkCat=p.custom?'내 식물':p.cat;
+  showModal(`<h2>실험할 식물 고르기</h2>
+    <p class="hint" style="margin-top:0">채소 10종·과일 10종의 재배 환경을 조사해 두었어요. 식물을 고르면 조사값으로 자동제어 규칙이 세팅됩니다.</p>
+    <div class="pk"><div>
+      <div class="pk-tabs" role="group" aria-label="분류">${['채소','과일','내 식물'].map(c=>`<button data-pkcat="${c}" aria-pressed="${pkCat===c}">${c}</button>`).join('')}<button data-pknew="1">+ 식물 추가</button></div>
+      <input class="pk-search" id="pkSearch" placeholder="식물 이름 검색" value="${pkQuery}">
+      <div class="pk-list" id="pkList"></div>
+    </div><div id="pkDetail"></div></div>
+    <div class="btns"><button class="btn" data-m="menu">스테이지 선택</button><button class="btn primary" id="pkStart">이 조건으로 환경 세팅하고 시작</button></div>`,true);
+  renderPkList(); renderPkDetail();
+}
+function renderPkList(){
+  const q=pkQuery.trim();
+  const list=allPlants().filter(p=>(pkCat==='내 식물'?!(p.cat==='채소'||p.cat==='과일')||p.custom:p.cat===pkCat&&!p.custom)&&(!q||p.name.includes(q)));
+  $('#pkList').innerHTML=list.length?list.map(p=>`<button class="pk-item" data-pk="${p.id}" aria-pressed="${p.id===pkSel}"><b><span class="sw2" style="background:${p.fruit}"></span>${p.name}</b><span>${fmtR(p.T,'T')}°C · pH ${fmtR(p.PH,'PH')}</span></button>`).join('')
+    :`<p class="hint">${pkCat==='내 식물'?'아직 추가한 식물이 없어요. "+ 식물 추가"로 조사한 식물을 등록해 보세요.':'검색 결과가 없어요.'}</p>`;
+}
+function renderPkDetail(){
+  const p=plantById(pkSel); const box=$('#pkDetail'); if(!box) return;
+  if(!p){ box.innerHTML='<div class="pk-detail"><p class="hint">왼쪽에서 식물을 골라 주세요.</p></div>'; $('#pkStart').disabled=true; return; }
+  $('#pkStart').disabled=false;
+  box.innerHTML=`<div class="pk-detail"><span class="cat">${p.custom?'내 식물':p.cat}</span><h3>${p.name}</h3>
+    <div class="tblwrap"><table class="ctbl"><thead><tr><th>조건</th><th>적정 범위</th></tr></thead><tbody>
+    ${PARAMS.map(x=>`<tr><td>${x.name}</td><td>${x.k==='L'?p.L[0].toLocaleString()+' ~ '+p.L[1].toLocaleString():fmtR(p[x.k],x.k)} ${x.unit}</td></tr>`).join('')}
+    </tbody></table></div><p class="hint">${p.note||''}</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">${p.custom?`<button class="btn sm" data-pkedit="${p.id}">수정</button><button class="btn sm" data-pkdel="${p.id}">삭제</button>`:`<button class="btn sm" data-pkcopy="${p.id}">이 값으로 새 식물 만들기</button>`}</div></div>`;
+}
+function plantForm(base,editId){
+  const b=base||PLANT_LIB[0];
+  const inp=(k,i,st)=>`<input type="number" id="pf-${k}${i}" step="${st}" value="${b[k][i]}" aria-label="${k} ${i?'최대':'최소'}">`;
+  $('#pkDetail').innerHTML=`<div class="pk-detail"><span class="cat">${editId?'식물 수정':'새 식물 추가'}</span>
+    <form id="plantForm" class="pk-form">
+      <label class="full">식물 이름<input id="pf-name" value="${editId?b.name:''}" placeholder="예: 파프리카" maxlength="20" style="font-family:var(--body)"></label>
+      <label>분류<select id="pf-cat"><option${b.cat==='채소'?' selected':''}>채소</option><option${b.cat==='과일'?' selected':''}>과일</option></select></label>
+      <label>모양<select id="pf-shape">${[['leafy','잎채소'],['root','뿌리채소'],['vine','덩굴·지주'],['berry','딸기형'],['melon','박과(멜론형)'],['bush','과일나무'],['palm','바나나형'],['rosette','파인애플형']].map(([v,n])=>`<option value="${v}"${b.shape===v?' selected':''}>${n}</option>`).join('')}</select></label>
+      ${PARAMS.map(x=>`<label>${x.name} (${x.unit||'값'})<span class="rng">${inp(x.k,0,x.step)}~${inp(x.k,1,x.step)}</span></label>`).join('')}
+      <label>열매·잎 색<input type="color" id="pf-fruit" value="${b.fruit}"></label>
+      <label class="full">조사 메모<input id="pf-note" value="${editId?(b.note||''):''}" placeholder="어디서 조사했는지, 특징 등" maxlength="80" style="font-family:var(--body)"></label>
+      <p class="pk-err full" id="pfErr"></p>
+      <div class="full" style="display:flex;gap:6px;justify-content:flex-end"><button type="button" class="btn sm" data-pkcancel="1">취소</button><button type="submit" class="btn sm primary">${editId?'수정 저장':'도감에 추가'}</button></div>
+    </form></div>`;
+  $('#plantForm').dataset.edit=editId||'';
+  $('#pkStart').disabled=true;
+  $('#pf-name').focus();
+}
+function submitPlantForm(f){
+  const name=$('#pf-name').value.trim(); const err=$('#pfErr');
+  if(!name){ err.textContent='식물 이름을 입력해 주세요.'; return; }
+  const p={id:f.dataset.edit||('c'+Date.now().toString(36)),custom:true,cat:$('#pf-cat').value,name,shape:$('#pf-shape').value,fruit:$('#pf-fruit').value,note:$('#pf-note').value.trim()};
+  for(const x of PARAMS){ const a=parseFloat($(`#pf-${x.k}0`).value), b=parseFloat($(`#pf-${x.k}1`).value);
+    if(isNaN(a)||isNaN(b)){ err.textContent=`${x.name} 값을 숫자로 입력해 주세요.`; return; }
+    if(a>=b){ err.textContent=`${x.name}의 최소값이 최대값보다 작아야 해요.`; return; }
+    p[x.k]=[a,b]; }
+  const i=customPlants.findIndex(c=>c.id===p.id); if(i>=0) customPlants[i]=p; else customPlants.push(p);
+  saveCustom(); pkSel=p.id; pkCat='내 식물'; showPlantPicker(p.id);
+}
+function applyPlant(id){
+  const p=plantById(id); if(!p) return; labPlant=id;
+  const z=G.zones[0]; z.crop=registerPlant(p); initCropVals(z); z.rules=defaultRules(z); z.auto=true;
+  $('#labPlantName').textContent=`${p.name} (${p.custom?'내 식물':p.cat})`;
+  $('#plantNote').textContent=p.note?`조사 메모: ${p.note}`:'';
+  addLog(`${p.name} 재배 조건을 조사값으로 세팅했어요. 자동제어 규칙 ${z.rules.length}개가 켜졌습니다.`,'good');
+  buildZone(); renderCond();
+}
+function condRows(z){
+  const c=CROPS[z.crop];
+  return PARAMS.map(x=>{ const r=optOf(z,x.sensor), v=z.s[x.sensor], stt=status(z,x.sensor,v);
+    return {x,r,v,stt}; });
+}
+function renderCond(){
+  if(!G||G.st.theme!=='lab') return; const z=G.zones[0];
+  $('#condBody').innerHTML=condRows(z).map(({x,r,v,stt})=>`<tr><td>${x.name}</td><td>${x.k==='L'?r[0].toLocaleString()+'~'+r[1].toLocaleString():fmtR(r,x.k)} ${x.unit}</td><td>${fmt(v,SENS[x.sensor].d)}</td><td><span class="pill ${stt}">${STATUS_TXT[stt]}</span></td></tr>`).join('');
+}
+function labSample(z,m,sun){
+  const L=G.lab; if(!L) return;
+  const rows=condRows(z); const ok=rows.filter(r=>r.stt==='ok'||(r.x.k==='L'&&r.stt==='low'&&sun===0)).length;
+  L.fitSum+=ok/rows.length; L.fitN++;
+  if(m%60===0){ const d=Math.floor(G.min/1440)+1, hh=String(Math.floor(m/60)).padStart(2,'0');
+    L.rows.push({t:`${d}일 ${hh}:00`,temp:z.s.temp,humid:z.s.humid,light:z.s.light,co2:z.s.co2,moist:z.s.moist,soilT:z.s.soilT,ph:z.s.ph,ec:z.s.ec,growth:z.growth,fit:ok});
+    if(L.rows.length>240) L.rows.shift(); renderData(); }
+}
+function labFit(){ const L=G&&G.lab; return L&&L.fitN?Math.round(L.fitSum/L.fitN*100):0; }
+function renderData(){
+  const L=G.lab; if(!L) return;
+  $('#dataCount').textContent=`1시간마다 자동 기록 · ${L.rows.length}건`;
+  $('#dataBody').innerHTML=L.rows.slice().reverse().map(r=>`<tr><td>${r.t}</td><td>${r.temp.toFixed(1)}</td><td>${Math.round(r.humid)}</td><td>${Math.round(r.light).toLocaleString()}</td><td>${Math.round(r.co2)}</td><td>${Math.round(r.moist)}</td><td>${r.soilT.toFixed(1)}</td><td>${r.ph.toFixed(2)}</td><td>${r.ec.toFixed(2)}</td><td class="${r.fit===8?'ok':'no'}">${r.fit}/8</td></tr>`).join('');
+}
+function csvText(){
+  const p=CROPS[G.zones[0].crop];
+  return ['식물,시각,온도(°C),습도(%),조도(lx),CO2(ppm),토양수분(%),토양온도(°C),pH,EC(dS/m),생장률(%),적합조건수']
+    .concat(G.lab.rows.map(r=>[p.name,r.t,r.temp.toFixed(1),Math.round(r.humid),Math.round(r.light),Math.round(r.co2),Math.round(r.moist),r.soilT.toFixed(1),r.ph.toFixed(2),r.ec.toFixed(2),Math.floor(r.growth),r.fit].join(','))).join('\n');
+}
+
+/* ---------- 이벤트 ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target.closest('button'); if(!t) return;
+  if(t.dataset.pkcat){ pkCat=t.dataset.pkcat; document.querySelectorAll('[data-pkcat]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pkcat===pkCat)); renderPkList(); return; }
+  if(t.dataset.pk){ pkSel=t.dataset.pk; document.querySelectorAll('[data-pk]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.pk===pkSel)); renderPkDetail(); return; }
+  if(t.dataset.pknew){ plantForm(plantById(pkSel)&&!plantById(pkSel).custom?{...PLANT_LIB[0]}:PLANT_LIB[0]); return; }
+  if(t.dataset.pkcopy){ plantForm({...plantById(t.dataset.pkcopy)}); return; }
+  if(t.dataset.pkedit){ plantForm(plantById(t.dataset.pkedit),t.dataset.pkedit); return; }
+  if(t.dataset.pkdel){ customPlants=customPlants.filter(c=>c.id!==t.dataset.pkdel); saveCustom(); pkSel=PLANT_LIB[0].id; showPlantPicker(pkSel); return; }
+  if(t.dataset.pkcancel){ renderPkDetail(); return; }
+  if(t.id==='pkStart'){ if(!plantById(pkSel)) return; hideModal(); applyPlant(pkSel); showIntro(); return; }
+  if(t.id==='changePlant'){ setSpeed(0,true); startStage(0); sizeScene(); return; }
+  if(t.id==='reapply'){ const z=G.zones[0]; z.rules=defaultRules(z); z.auto=true; renderRules(); updateUI(); addLog('조사값으로 자동제어 규칙을 다시 세팅했어요.','info'); return; }
+  if(t.id==='copyCsv'){ const txt=csvText(); const box=$('#csvBox');
+    const fallback=()=>{ box.hidden=false; box.value=txt; box.focus(); box.select(); t.textContent='아래 내용을 복사하세요'; };
+    try{ navigator.clipboard.writeText(txt).then(()=>{ t.textContent='복사됨!'; setTimeout(()=>t.textContent='CSV 복사',1500); },fallback); }catch(e){ fallback(); }
+    return; }
+  if(t.dataset.start!==undefined){ startStage(+t.dataset.start); sizeScene(); return; }
+  if(t.dataset.sp!==undefined){ if(G&&!G.over) setSpeed(+t.dataset.sp); return; }
+  if(t.dataset.zone!==undefined){ sel=+t.dataset.zone; document.querySelectorAll('#tabs [data-zone]').forEach((b,i)=>b.setAttribute('aria-selected',i===sel)); buildZone(); return; }
+  if(t.dataset.act){ const z=G.zones[sel]; if(z.auto&&z.rules.some(r=>r.a===t.dataset.act)) return; z.manual[t.dataset.act]=!z.manual[t.dataset.act]; z.a[t.dataset.act]=z.manual[t.dataset.act]; updateUI(); return; }
+  if(t.dataset.del!==undefined){ G.zones[sel].rules.splice(+t.dataset.del,1); renderRules(); updateUI(); return; }
+  if(t.id==='autoToggle'){ const z=G.zones[sel]; z.auto=!z.auto; addLog(`${z.name} 자동제어 ${z.auto?'켜짐':'꺼짐'}`,'info'); renderRules(); updateUI(); return; }
+  if(t.id==='addRule'){ const z=G.zones[sel]; const k=KIND[z.kind]; z.rules.push({s:k.sensors[0],op:'<',v:Math.round(optOf(z,k.sensors[0])[0]),a:k.acts[0],on:'ON'}); renderRules(); updateUI(); return; }
+  if(t.id==='resetRules'){ const z=G.zones[sel]; z.rules=defaultRules(z); renderRules(); updateUI(); return; }
+  if(t.id==='useCompost'){ if(G.compost>=1){ G.compost-=1; const z=G.zones[0]; z.boost=144; addLog('상추 온실에 퇴비 1포대를 주었어요. 24시간 동안 생장 1.35배!','good'); updateUI(); } return; }
+  if(t.id==='exitBtn'){ setSpeed(0,true); G=null; renderMenu(); showScreen('menu'); return; }
+  if(t.dataset.m){ const m=t.dataset.m; hideModal();
+    if(m==='go'){ setSpeed(1); }
+    if(m==='retry'){ startStage(G.idx); sizeScene(); }
+    if(m==='next'){ startStage(G.idx+1); sizeScene(); }
+    if(m==='menu'){ G=null; renderMenu(); showScreen('menu'); }
+  }
+});
+document.addEventListener('submit',e=>{ if(e.target.id==='plantForm'){ e.preventDefault(); submitPlantForm(e.target); } });
+document.addEventListener('input',e=>{ if(e.target.id==='pkSearch'){ pkQuery=e.target.value; renderPkList(); } });
+document.addEventListener('change',e=>{
+  const el=e.target; if(el.dataset.ri===undefined||!G) return;
+  const z=G.zones[sel], r=z.rules[+el.dataset.ri]; const f=el.dataset.f;
+  if(f==='v') r.v=parseFloat(el.value)||0;
+  else { r[f]=el.value; delete r.n; if(f==='s'){ const lo=optOf(z,r.s)[0]; r.v=(r.s==='ph'||r.s==='ec')?lo:Math.round(lo); } renderRules(); }
+  updateUI();
+});
+window.addEventListener('resize',()=>{ if(!$('#game').hidden) sizeScene(); });
+
+renderMenu(); showScreen('menu'); requestAnimationFrame(loop);
+(function(){
+  const intro=$('#intro'); if(!intro) return;
+  document.body.style.overflow='hidden';
+  const open=()=>{ if(intro.classList.contains('open')) return; intro.classList.add('open');
+    setTimeout(()=>intro.classList.add('gone'),3300);
+    setTimeout(()=>{ intro.hidden=true; document.body.style.overflow=''; const b=document.querySelector('[data-start]'); b&&b.focus({preventScroll:true}); },3950); };
+  intro.addEventListener('click',open);
+  intro.addEventListener('keydown',e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); open(); } });
+  intro.focus({preventScroll:true});
+})();
+})();
+</script>
+
+</body>
+</html>
